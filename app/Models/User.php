@@ -1,0 +1,192 @@
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laratrust\Contracts\LaratrustUser;
+use Laratrust\Traits\HasRolesAndPermissions;
+
+class User extends Authenticatable implements LaratrustUser
+{
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable, HasRolesAndPermissions;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'username',
+        'name',
+        'email',
+        'password',
+        'auth_provider',
+        'auth_provider_id',
+        'profile_picture',
+        'settings',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'settings' => 'array',
+        ];
+    }
+
+    /**
+     * Get the artist profile associated with the user.
+     */
+    public function artist()
+    {
+        return $this->hasOne(Artist::class);
+    }
+
+    /**
+     * Get the organiser profile associated with the user.
+     */
+    public function organiser()
+    {
+        return $this->hasOne(Organiser::class);
+    }
+
+    /**
+     * Get the venues owned by the user.
+     */
+    public function venues()
+    {
+        return $this->hasMany(Venue::class);
+    }
+
+    /**
+     * Get the events created by the user.
+     */
+    public function events()
+    {
+        return $this->hasMany(Event::class);
+    }
+
+    /**
+     * Get the ratings given by the user.
+     */
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class);
+    }
+
+    /**
+     * Generate a unique folder name for the user based on their role and username.
+     */
+    public function generateUniqueFolderName()
+    {
+        $rolePrefix = $this->getRolePrefix();
+        $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->username));
+        $randomSuffix = str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
+        
+        return $rolePrefix . '_' . $username . '_' . $randomSuffix;
+    }
+
+    /**
+     * Get the role prefix for folder naming.
+     */
+    private function getRolePrefix()
+    {
+        if ($this->hasRole('artist')) {
+            return 'art';
+        } elseif ($this->hasRole('organiser')) {
+            return 'org';
+        } else {
+            return 'usa'; // user
+        }
+    }
+
+    /**
+     * Get or create the user's folder settings.
+     */
+    public function getOrCreateFolderSettings()
+    {
+        if (empty($this->settings) || !isset($this->settings['folder_name'])) {
+            $folderName = $this->generateUniqueFolderName();
+            $settings = $this->settings ?? [];
+            $settings['folder_name'] = $folderName;
+            $settings['created_at'] = now()->toISOString();
+            
+            $this->update(['settings' => $settings]);
+            
+            // Create the actual folder structure
+            $this->createUserFolders($folderName);
+        }
+        
+        return $this->settings;
+    }
+
+    /**
+     * Create the user's folder structure in storage.
+     */
+    public function createUserFolders($folderName = null)
+    {
+        $folderName = $folderName ?? $this->settings['folder_name'] ?? $this->generateUniqueFolderName();
+        
+        // Determine role-based folder structure
+        $roleFolder = $this->getRoleFolder();
+        $basePath = $roleFolder . '/' . $folderName;
+        
+        $folders = [
+            $basePath . '/profile',
+            $basePath . '/events',
+            $basePath . '/galleries',
+            $basePath . '/documents',
+            $basePath . '/temp'
+        ];
+        
+        foreach ($folders as $folder) {
+            \Storage::disk('public')->makeDirectory($folder);
+        }
+        
+        return $basePath;
+    }
+
+    /**
+     * Get the role-based folder name.
+     */
+    private function getRoleFolder()
+    {
+        if ($this->hasRole('artist')) {
+            return 'artists';
+        } elseif ($this->hasRole('organiser')) {
+            return 'organisers';
+        } else {
+            return 'users';
+        }
+    }
+
+    /**
+     * Get the user's base folder path.
+     */
+    public function getFolderPath()
+    {
+        $settings = $this->getOrCreateFolderSettings();
+        $roleFolder = $this->getRoleFolder();
+        return $roleFolder . '/' . $settings['folder_name'];
+    }
+}
