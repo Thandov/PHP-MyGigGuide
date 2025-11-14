@@ -177,10 +177,9 @@
                             class="block w-full pl-10 pr-3 py-3 border border-purple-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('role') border-red-300 @enderror"
                         >
                             <option value="">Select your account type</option>
-                            <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>General User - Discover events and connect with the community</option>
+                            <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Fan - Discover events and connect with the community</option>
                             <option value="artist" {{ old('role') == 'artist' ? 'selected' : '' }}>Artist - Showcase your music and manage performances</option>
                             <option value="organiser" {{ old('role') == 'organiser' ? 'selected' : '' }}>Event Organiser - Create and manage events</option>
-                            <option value="venue_owner" {{ old('role') == 'venue_owner' ? 'selected' : '' }}>Venue Owner - List your venue and host events</option>
                         </select>
                     </div>
                     @error('role')

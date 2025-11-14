@@ -47,9 +47,7 @@
                         @enderror
                     </div>
 
-                    <!-- Hidden fields for coordinates -->
-                    <input type="hidden" id="latitude" name="latitude" value="{{ old('latitude') }}">
-                    <input type="hidden" id="longitude" name="longitude" value="{{ old('longitude') }}">
+                    <!-- Coordinates (auto-filled by Google Maps autocomplete) -->
 
                     <!-- City -->
                     <div>
@@ -94,22 +92,34 @@
                     <!-- Main Picture -->
                     <div class="md:col-span-2">
                         <label for="main_picture" class="block text-sm font-medium text-gray-700 mb-2">Main Picture</label>
-                        <input type="file" id="main_picture" name="main_picture" accept="image/*"
+                        <input type="file" id="main_picture" name="main_picture" accept="image/*" onchange="previewMainPicture(this)"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('main_picture') border-red-500 @enderror">
                         @error('main_picture')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        <!-- Main Picture Preview -->
+                        <div id="mainPicturePreview" class="mt-3 hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Preview</label>
+                            <img class="h-32 w-32 object-cover rounded-lg border" alt="Main picture preview">
+                        </div>
                     </div>
 
                     <!-- Gallery -->
                     <div class="md:col-span-2">
                         <label for="gallery" class="block text-sm font-medium text-gray-700 mb-2">Gallery Images</label>
-                        <input type="file" id="gallery" name="gallery[]" accept="image/*" multiple
+                        <input type="file" id="gallery" name="gallery[]" accept="image/*" multiple onchange="previewGallery(this)"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('gallery') border-red-500 @enderror">
                         @error('gallery')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                         <p class="mt-1 text-sm text-gray-500">You can select multiple images</p>
+                        <!-- Gallery Preview -->
+                        <div id="galleryPreview" class="mt-3 hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gallery Preview</label>
+                            <div class="grid grid-cols-4 gap-4">
+                                <!-- Gallery previews will be inserted here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -126,10 +136,17 @@
     </div>
 </div>
 
+@push('head')
+<script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.api_key', 'AIzaSyBvOkBw3cLWlIqFIBi5DswhQcKf3eJvA8Y') }}&libraries=places&callback=initGoogleMaps" async defer></script>
+@endpush
+
 @push('scripts')
 <script>
 let autocomplete;
-let map;
+
+function initGoogleMaps() {
+    initAutocomplete();
+}
 
 function initAutocomplete() {
     autocomplete = new google.maps.places.Autocomplete(
@@ -148,6 +165,16 @@ function initAutocomplete() {
         document.getElementById('address').value = address;
         document.getElementById('latitude').value = lat;
         document.getElementById('longitude').value = lng;
+        
+        // Also try to extract city from address components
+        if (place.address_components) {
+            for (let component of place.address_components) {
+                if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+                    document.getElementById('city').value = component.long_name;
+                    break;
+                }
+            }
+        }
         return true;
     };
 
@@ -174,18 +201,55 @@ function initAutocomplete() {
     addressInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); geocodeNow(); }});
 }
 
-function loadGoogleMaps() {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&callback=initAutocomplete`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+// Image preview functions
+function previewMainPicture(input) {
+    const preview = document.getElementById('mainPicturePreview');
+    const file = input.files && input.files[0];
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.querySelector('img').src = e.target.result;
+            preview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.classList.add('hidden');
+    }
 }
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    loadGoogleMaps();
-});
+function previewGallery(input) {
+    const preview = document.getElementById('galleryPreview');
+    const files = input.files;
+    
+    preview.querySelector('.grid').innerHTML = '';
+    
+    if (files && files.length > 0) {
+        preview.classList.remove('hidden');
+        
+        Array.from(files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'relative';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Gallery preview ${index + 1}" class="h-24 w-full object-cover rounded-lg border">
+                    <button type="button" onclick="removeGalleryImage(this)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs hover:bg-red-600">
+                        ×
+                    </button>
+                `;
+                preview.querySelector('.grid').appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+
+function removeGalleryImage(button) {
+    button.parentElement.remove();
+}
 </script>
 @endpush
 @endsection

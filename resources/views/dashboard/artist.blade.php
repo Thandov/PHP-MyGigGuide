@@ -26,71 +26,85 @@
                         <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Create Event
+                        List an Event
                     </a>
+                    @auth
+                    <form action="{{ route('features.checkout') }}" method="GET">
+                        <input type="hidden" name="featureable_type" value="artist">
+                        <input type="hidden" name="featureable_id" value="{{ $artist->id }}">
+                        <select name="feature_id" class="input">
+                            @foreach(\App\Models\PaidFeature::where('applies_to','artist')->where('is_active', true)->get() as $feature)
+                                <option value="{{ $feature->id }}">Boost: {{ $feature->name }} ({{ $feature->currency }} {{ number_format($feature->price_cents/100, 2) }})</option>
+                            @endforeach
+                        </select>
+                        <button class="btn-primary ml-2" type="submit">Boost Profile</button>
+                    </form>
+                    @endauth
                 </div>
             </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-xl bg-purple-100">
-                        <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Total Events</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $stats['total_events'] }}</p>
+        @if($statsEnabled)
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-xl bg-purple-100">
+                            <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Events</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ $stats['total_events'] }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-xl bg-blue-100">
-                        <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Upcoming</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $stats['upcoming_events'] }}</p>
+                <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-xl bg-blue-100">
+                            <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Upcoming</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ $stats['upcoming_events'] }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-xl bg-green-100">
-                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Venues Owned</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $stats['venues_owned'] }}</p>
+                <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-xl bg-green-100">
+                            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Venues Owned</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ $stats['venues_owned'] }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-xl bg-yellow-100">
-                        <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Avg Rating</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['average_rating'], 1) }}/5</p>
+                <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-xl bg-yellow-100">
+                            <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Avg Rating</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['average_rating'], 1) }}/5</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Upcoming Events -->
@@ -103,7 +117,7 @@
                 </div>
                 
                 @if($upcomingEvents->count() > 0)
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4">
                         @foreach($upcomingEvents->take(6) as $event)
                             <x-event-card :event="$event" />
                         @endforeach
@@ -125,7 +139,9 @@
             <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-xl font-bold text-gray-900">Recent Reviews</h2>
-                    <span class="text-sm text-gray-500">{{ $stats['total_ratings'] }} total</span>
+                    @if($statsEnabled)
+                        <span class="text-sm text-gray-500">{{ $stats['total_ratings'] }} total</span>
+                    @endif
                 </div>
                 
                 @if($ratings->count() > 0)
@@ -176,7 +192,7 @@
                     </a>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-6">
                     @foreach($venues as $venue)
                         <x-venue-card :venue="$venue" />
                     @endforeach

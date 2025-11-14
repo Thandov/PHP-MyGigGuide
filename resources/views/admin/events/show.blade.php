@@ -57,7 +57,7 @@
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500">Time</label>
-                            <p class="text-gray-900">{{ $event->time }}</p>
+                            <p class="text-gray-900">{{ $event->time ? $event->time->format('H:i') : 'Not set' }}</p>
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500">Price</label>
@@ -119,7 +119,7 @@
                             <div>
                                 <label class="text-sm font-medium text-gray-500">Gallery Images</label>
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-                                    @foreach(json_decode($event->gallery, true) as $image)
+                                    @foreach($event->gallery as $image)
                                         <img src="{{ Storage::url($image) }}" alt="Gallery Image" class="h-32 w-full object-cover rounded-lg">
                                     @endforeach
                                 </div>
@@ -179,24 +179,7 @@
                     </div>
                 </div>
 
-                <!-- Event Statistics -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Event Statistics</h2>
-                    <div class="space-y-3">
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-500">Created</span>
-                            <span class="text-sm text-gray-900">{{ $event->created_at->format('M d, Y') }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-500">Last Updated</span>
-                            <span class="text-sm text-gray-900">{{ $event->updated_at->format('M d, Y') }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-500">ID</span>
-                            <span class="text-sm text-gray-900">#{{ $event->id }}</span>
-                        </div>
-                    </div>
-                </div>
+              
             </div>
         </div>
     </div>

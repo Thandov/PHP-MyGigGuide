@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Laratrust\Models\Role;
+use Illuminate\Support\Facades\Hash;
 use Laratrust\Models\Permission;
+use Laratrust\Models\Role;
 
 class AdminRolesSeeder extends Seeder
 {
@@ -17,14 +18,33 @@ class AdminRolesSeeder extends Seeder
         $adminRole = Role::firstOrCreate([
             'name' => 'admin',
             'display_name' => 'Administrator',
-            'description' => 'Administrator with full access to the system'
+            'description' => 'Administrator with full access to the system',
         ]);
 
         // Create superuser role
         $superuserRole = Role::firstOrCreate([
             'name' => 'superuser',
             'display_name' => 'Super User',
-            'description' => 'Super user with complete system access'
+            'description' => 'Super user with complete system access',
+        ]);
+
+        // Create public-facing roles
+        $artistRole = Role::firstOrCreate([
+            'name' => 'artist',
+            'display_name' => 'Artist',
+            'description' => 'Performer profile with artist capabilities',
+        ]);
+
+        $organiserRole = Role::firstOrCreate([
+            'name' => 'organiser',
+            'display_name' => 'Organiser',
+            'description' => 'Event organiser with event management capabilities',
+        ]);
+
+        $generalUserRole = Role::firstOrCreate([
+            'name' => 'user',
+            'display_name' => 'General User',
+            'description' => 'General site user with basic access',
         ]);
 
         // Create admin permissions
@@ -42,7 +62,7 @@ class AdminRolesSeeder extends Seeder
             Permission::firstOrCreate([
                 'name' => $name,
                 'display_name' => $displayName,
-                'description' => "Permission to {$displayName}"
+                'description' => "Permission to {$displayName}",
             ]);
         }
 
@@ -54,58 +74,53 @@ class AdminRolesSeeder extends Seeder
 
         // Create admin user
         $adminUser = \App\Models\User::firstOrCreate([
-            'username' => 'admin'
+            'username' => 'admin',
         ], [
             'name' => 'System Administrator',
             'email' => 'admin@mygigguide.com',
-            'password' => \Hash::make('admin123'),
-            'is_active' => true,
+            'password' => Hash::make('admin123'),
         ]);
 
         // Assign admin role to admin user
-        if (!$adminUser->hasRole('admin')) {
+        if (! $adminUser->hasRole('admin')) {
             $adminUser->addRole('admin');
         }
 
         // Create superuser
         $superuser = \App\Models\User::firstOrCreate([
-            'username' => 'superuser'
+            'username' => 'superuser',
         ], [
             'name' => 'Super User',
             'email' => 'superuser@mygigguide.com',
-            'password' => \Hash::make('superuser123'),
-            'is_active' => true,
+            'password' => Hash::make('superuser123'),
         ]);
 
         // Assign superuser role
-        if (!$superuser->hasRole('superuser')) {
+        if (! $superuser->hasRole('superuser')) {
             $superuser->addRole('superuser');
         }
 
         // Additional Superusers requested
         $thando = \App\Models\User::firstOrCreate([
-            'username' => 'thando'
+            'username' => 'thando',
         ], [
             'name' => 'Thando',
             'email' => 'thando@mygigguide.com',
-            'password' => \Hash::make('Gu3ssWh@t'),
-            'is_active' => true,
+            'password' => Hash::make('Gu3ssWh@t'),
         ]);
-        if (!$thando->hasRole('superuser')) {
+        if (! $thando->hasRole('superuser')) {
             $thando->addRole('superuser');
         }
 
         $dave = \App\Models\User::firstOrCreate([
-            'username' => 'dave'
+            'username' => 'dave',
         ], [
             'name' => 'Dave',
             'email' => 'dave@mygigguide.com',
-            'password' => \Hash::make('Dave123'),
-            'is_active' => true,
+            'password' => Hash::make('Dave123!'),
         ]);
-        if (!$dave->hasRole('superuser')) {
+        if (! $dave->hasRole('superuser')) {
             $dave->addRole('superuser');
         }
     }
 }
-

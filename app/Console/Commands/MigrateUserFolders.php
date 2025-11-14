@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 class MigrateUserFolders extends Command
@@ -40,7 +40,7 @@ class MigrateUserFolders extends Command
                 $this->migrateUserFolder($user);
                 $this->line("\n✓ Migrated: {$user->username} ({$user->name})");
             } catch (\Exception $e) {
-                $this->error("\n✗ Failed to migrate {$user->username}: " . $e->getMessage());
+                $this->error("\n✗ Failed to migrate {$user->username}: ".$e->getMessage());
             }
             $bar->advance();
         }
@@ -53,12 +53,12 @@ class MigrateUserFolders extends Command
     private function migrateUserFolder($user)
     {
         $settings = $user->settings;
-        if (!isset($settings['folder_name'])) {
+        if (! isset($settings['folder_name'])) {
             return;
         }
 
         $oldFolderName = $settings['folder_name'];
-        $oldPath = 'users/' . $oldFolderName;
+        $oldPath = 'users/'.$oldFolderName;
         $newPath = $user->getFolderPath();
 
         // Check if old folder exists
@@ -81,15 +81,15 @@ class MigrateUserFolders extends Command
     private function moveFolderContents($oldPath, $newPath)
     {
         $files = Storage::disk('public')->allFiles($oldPath);
-        
+
         foreach ($files as $file) {
-            $relativePath = str_replace($oldPath . '/', '', $file);
-            $newFilePath = $newPath . '/' . $relativePath;
-            
+            $relativePath = str_replace($oldPath.'/', '', $file);
+            $newFilePath = $newPath.'/'.$relativePath;
+
             // Ensure directory exists
             $newDir = dirname($newFilePath);
             Storage::disk('public')->makeDirectory($newDir);
-            
+
             // Move file
             if (Storage::disk('public')->exists($file)) {
                 Storage::disk('public')->move($file, $newFilePath);

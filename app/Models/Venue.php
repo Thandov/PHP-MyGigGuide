@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Venue extends Model
@@ -31,6 +31,9 @@ class Venue extends Model
 
     protected $casts = [
         'venue_gallery' => 'array',
+        'user_id' => 'integer',
+        'owner_id' => 'integer',
+        'capacity' => 'integer',
     ];
 
     /**

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('ticket_url')->nullable();
             $table->string('poster')->nullable();
             $table->text('gallery')->nullable(); // JSON string
-            $table->string('status')->default('scheduled');
+            $table->string('status')->default('upcoming');
             $table->string('category')->nullable();
             $table->integer('capacity')->nullable();
             $table->foreignId('venue_id')->nullable()->constrained();

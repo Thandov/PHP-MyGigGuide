@@ -12,7 +12,7 @@ use Laratrust\Traits\HasRolesAndPermissions;
 class User extends Authenticatable implements LaratrustUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRolesAndPermissions;
+    use HasFactory, HasRolesAndPermissions, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -83,7 +83,7 @@ class User extends Authenticatable implements LaratrustUser
      */
     public function events()
     {
-        return $this->hasMany(Event::class);
+        return $this->morphMany(Event::class, 'owner');
     }
 
     /**
@@ -95,6 +95,38 @@ class User extends Authenticatable implements LaratrustUser
     }
 
     /**
+     * Get user's favorite events.
+     */
+    public function favoriteEvents()
+    {
+        return $this->belongsToMany(Event::class, 'user_event_favorites');
+    }
+
+    /**
+     * Get user's favorite venues.
+     */
+    public function favoriteVenues()
+    {
+        return $this->belongsToMany(Venue::class, 'user_venue_favorites');
+    }
+
+    /**
+     * Get user's favorite artists.
+     */
+    public function favoriteArtists()
+    {
+        return $this->belongsToMany(Artist::class, 'user_artist_favorites');
+    }
+
+    /**
+     * Get user's favorite organisers.
+     */
+    public function favoriteOrganisers()
+    {
+        return $this->belongsToMany(Organiser::class, 'user_organiser_favorites');
+    }
+
+    /**
      * Generate a unique folder name for the user based on their role and username.
      */
     public function generateUniqueFolderName()
@@ -102,8 +134,8 @@ class User extends Authenticatable implements LaratrustUser
         $rolePrefix = $this->getRolePrefix();
         $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->username));
         $randomSuffix = str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
-        
-        return $rolePrefix . '_' . $username . '_' . $randomSuffix;
+
+        return $rolePrefix.'_'.$username.'_'.$randomSuffix;
     }
 
     /**
@@ -125,18 +157,18 @@ class User extends Authenticatable implements LaratrustUser
      */
     public function getOrCreateFolderSettings()
     {
-        if (empty($this->settings) || !isset($this->settings['folder_name'])) {
+        if (empty($this->settings) || ! isset($this->settings['folder_name'])) {
             $folderName = $this->generateUniqueFolderName();
             $settings = $this->settings ?? [];
             $settings['folder_name'] = $folderName;
             $settings['created_at'] = now()->toISOString();
-            
+
             $this->update(['settings' => $settings]);
-            
+
             // Create the actual folder structure
             $this->createUserFolders($folderName);
         }
-        
+
         return $this->settings;
     }
 
@@ -146,23 +178,23 @@ class User extends Authenticatable implements LaratrustUser
     public function createUserFolders($folderName = null)
     {
         $folderName = $folderName ?? $this->settings['folder_name'] ?? $this->generateUniqueFolderName();
-        
+
         // Determine role-based folder structure
         $roleFolder = $this->getRoleFolder();
-        $basePath = $roleFolder . '/' . $folderName;
-        
+        $basePath = $roleFolder.'/'.$folderName;
+
         $folders = [
-            $basePath . '/profile',
-            $basePath . '/events',
-            $basePath . '/galleries',
-            $basePath . '/documents',
-            $basePath . '/temp'
+            $basePath.'/profile',
+            $basePath.'/events',
+            $basePath.'/galleries',
+            $basePath.'/documents',
+            $basePath.'/temp',
         ];
-        
+
         foreach ($folders as $folder) {
             \Storage::disk('public')->makeDirectory($folder);
         }
-        
+
         return $basePath;
     }
 
@@ -187,6 +219,36 @@ class User extends Authenticatable implements LaratrustUser
     {
         $settings = $this->getOrCreateFolderSettings();
         $roleFolder = $this->getRoleFolder();
-        return $roleFolder . '/' . $settings['folder_name'];
+
+        return $roleFolder.'/'.$settings['folder_name'];
+    }
+
+    /**
+     * Ensure related profile rows exist for the user's assigned roles.
+     */
+    public function ensureRoleProfiles()
+    {
+        $this->loadMissing('roles');
+
+        foreach ($this->roles as $role) {
+            $roleName = $role->name;
+
+            if ($roleName === 'artist') {
+                \App\Models\Artist::firstOrCreate(
+                    ['user_id' => $this->id],
+                    ['stage_name' => $this->name]
+                );
+            }
+
+            if ($roleName === 'organiser') {
+                \App\Models\Organiser::firstOrCreate(
+                    ['user_id' => $this->id],
+                    [
+                        'organisation_name' => $this->name,
+                        'contact_email' => $this->email,
+                    ]
+                );
+            }
+        }
     }
 }

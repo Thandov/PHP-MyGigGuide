@@ -22,7 +22,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('profile.update') }}" class="space-y-8">
+        <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-8">
             @csrf
             @method('PUT')
 
@@ -57,12 +57,10 @@
                             id="username"
                             name="username"
                             value="{{ old('username', $user->username) }}"
-                            required
-                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('username') border-red-300 @enderror"
+                            readonly
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                         />
-                        @error('username')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                        <p class="mt-1 text-sm text-gray-500">Username cannot be changed</p>
                     </div>
 
                     <div>
@@ -74,12 +72,10 @@
                             id="email"
                             name="email"
                             value="{{ old('email', $user->email) }}"
-                            required
-                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('email') border-red-300 @enderror"
+                            readonly
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                         />
-                        @error('email')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                        <p class="mt-1 text-sm text-gray-500">Email address cannot be changed</p>
                     </div>
 
                     <div>
@@ -94,6 +90,46 @@
                             @endforeach
                         </div>
                         <p class="mt-1 text-xs text-gray-500">Account type cannot be changed</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Picture -->
+            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">Profile Picture</h2>
+                
+                <div class="flex items-start space-x-6">
+                    <!-- Current Profile Picture -->
+                    <div class="flex-shrink-0">
+                        @php
+                            $profileImage = asset('logos/logo2.jpeg');
+                            if ($user->profile_picture && !str_contains($user->profile_picture, '/tmp/php') && !str_contains($user->profile_picture, 'tmp.php')) {
+                                $profileImage = Storage::url($user->profile_picture);
+                            }
+                        @endphp
+                        <img id="current-profile-picture" src="{{ $profileImage }}" alt="Current Profile Picture" class="h-32 w-32 rounded-lg object-cover border-4 border-gray-200">
+                        <p class="text-sm text-gray-600 mt-2 text-center">Current Picture</p>
+                    </div>
+                    
+                    <!-- Upload New Picture -->
+                    <div class="flex-1">
+                        <label for="profile_picture" class="block text-sm font-medium text-gray-700 mb-2">
+                            Upload New Profile Picture
+                        </label>
+                        <input
+                            type="file"
+                            id="profile_picture"
+                            name="profile_picture"
+                            accept="image/*"
+                            onchange="previewImage(this)"
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('profile_picture') border-red-300 @enderror"
+                        />
+                        @error('profile_picture')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-sm text-gray-500">
+                            Upload a JPG, PNG, or GIF image. Maximum size: 10MB.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -149,13 +185,13 @@
                                 <label for="genre" class="block text-sm font-medium text-gray-700 mb-2">
                                     Genre
                                 </label>
-                                <input
-                                    type="text"
-                                    id="genre"
-                                    name="genre"
-                                    value="{{ old('genre', $profile->genre ?? '') }}"
-                                    required
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('genre') border-red-300 @enderror"
+                                <x-genre-select 
+                                    id="genre" 
+                                    name="genre" 
+                                    :value="old('genre', $profile->genre ?? '')" 
+                                    required 
+                                    use-names
+                                    class="block w-full @error('genre') border-red-300 @enderror" 
                                 />
                                 @error('genre')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -373,5 +409,23 @@
         </form>
     </div>
 </div>
+
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            // Update the current picture display
+            const currentPicture = document.querySelector('#current-profile-picture');
+            if (currentPicture) {
+                currentPicture.src = e.target.result;
+            }
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
 @endsection
 

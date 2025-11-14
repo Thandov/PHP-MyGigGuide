@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -29,15 +29,15 @@ class AuthController extends Controller
 
         // Check if user has admin role
         $user = User::where('username', $request->username)->first();
-        
-        if (!$user || !Hash::check($request->password, $user->password)) {
+
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return back()->withErrors([
                 'username' => 'Invalid credentials.',
             ])->withInput();
         }
 
         // Check if user has admin role
-        if (!$user->hasRole(['admin', 'superuser'])) {
+        if (! $user->hasRole(['admin', 'superuser'])) {
             return back()->withErrors([
                 'username' => 'Access denied. Admin privileges required.',
             ])->withInput();
@@ -60,4 +60,3 @@ class AuthController extends Controller
         return redirect()->route('admin.login');
     }
 }
-

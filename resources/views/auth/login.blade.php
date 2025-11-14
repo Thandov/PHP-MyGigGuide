@@ -28,6 +28,11 @@
             <form method="POST" action="{{ route('login') }}" class="space-y-6">
                 @csrf
                 
+                <!-- Preserve continue parameter for redirect -->
+                @if(request()->has('continue'))
+                    <input type="hidden" name="continue" value="{{ request()->get('continue') }}">
+                @endif
+                
                 <!-- Username Field -->
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700 mb-2">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Organiser;
 use Illuminate\Http\Request;
 
 class OrganiserController extends Controller
@@ -11,7 +12,11 @@ class OrganiserController extends Controller
      */
     public function index()
     {
-        //
+        $organisers = Organiser::with(['user'])
+            ->orderBy('organisation_name')
+            ->paginate(12);
+
+        return view('organisers.index', compact('organisers'));
     }
 
     /**
@@ -35,7 +40,11 @@ class OrganiserController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $organiser = Organiser::with(['user', 'events' => function ($query) {
+            $query->where('date', '>=', now())->orderBy('date');
+        }])->findOrFail($id);
+
+        return view('organisers.show', compact('organiser'));
     }
 
     /**

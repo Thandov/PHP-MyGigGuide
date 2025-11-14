@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Laratrust\Models\Role;
 use Laratrust\Models\Permission;
+use Laratrust\Models\Role;
 
 class LaratrustSeeder extends Seeder
 {
@@ -19,7 +18,7 @@ class LaratrustSeeder extends Seeder
             ['name' => 'superuser'],
             [
                 'display_name' => 'Super User',
-                'description' => 'System owner with ultimate privileges'
+                'description' => 'System owner with ultimate privileges',
             ]
         );
 
@@ -27,7 +26,7 @@ class LaratrustSeeder extends Seeder
             ['name' => 'admin'],
             [
                 'display_name' => 'Administrator',
-                'description' => 'System administrator with full access'
+                'description' => 'System administrator with full access',
             ]
         );
 
@@ -35,7 +34,7 @@ class LaratrustSeeder extends Seeder
             ['name' => 'artist'],
             [
                 'display_name' => 'Artist',
-                'description' => 'User who creates and manages artist profiles'
+                'description' => 'User who creates and manages artist profiles',
             ]
         );
 
@@ -43,7 +42,7 @@ class LaratrustSeeder extends Seeder
             ['name' => 'organiser'],
             [
                 'display_name' => 'Event Organiser',
-                'description' => 'User who creates and manages events and venues'
+                'description' => 'User who creates and manages events and venues',
             ]
         );
 
@@ -51,7 +50,7 @@ class LaratrustSeeder extends Seeder
             ['name' => 'venue_owner'],
             [
                 'display_name' => 'Venue Owner',
-                'description' => 'User who manages venue information'
+                'description' => 'User who manages venue information',
             ]
         );
 
@@ -59,7 +58,7 @@ class LaratrustSeeder extends Seeder
             ['name' => 'user'],
             [
                 'display_name' => 'Regular User',
-                'description' => 'Basic authenticated user'
+                'description' => 'Basic authenticated user',
             ]
         );
 
@@ -116,30 +115,30 @@ class LaratrustSeeder extends Seeder
         $admin->syncPermissions([
             'manage-users', 'view-users', 'create-events', 'edit-events', 'delete-events', 'view-events',
             'view-artists', 'create-venues', 'edit-venues', 'delete-venues', 'view-venues',
-            'view-organisers', 'view-ratings', 'moderate-content', 'view-analytics'
+            'view-organisers', 'view-ratings', 'moderate-content', 'view-analytics',
         ]);
 
         $artist->syncPermissions([
             'edit-profile', 'create-events', 'edit-events', 'delete-events', 'view-events',
             'create-artist-profile', 'edit-artist-profile', 'view-artists',
             'create-venues', 'edit-venues', 'view-venues', 'claim-venues',
-            'rate-content', 'view-ratings'
+            'rate-content', 'view-ratings',
         ]);
 
         $organiser->syncPermissions([
             'edit-profile', 'create-events', 'edit-events', 'delete-events', 'view-events',
             'create-organiser-profile', 'edit-organiser-profile', 'view-organisers',
             'create-venues', 'edit-venues', 'view-venues', 'claim-venues',
-            'rate-content', 'view-ratings'
+            'rate-content', 'view-ratings',
         ]);
 
         $venueOwner->syncPermissions([
-            'edit-profile', 'edit-venues', 'view-venues', 'rate-content', 'view-ratings'
+            'edit-profile', 'edit-venues', 'view-venues', 'rate-content', 'view-ratings',
         ]);
 
         $user->syncPermissions([
             'edit-profile', 'view-events', 'view-artists', 'view-venues', 'view-organisers',
-            'rate-content', 'view-ratings'
+            'rate-content', 'view-ratings',
         ]);
     }
 }

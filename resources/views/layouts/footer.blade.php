@@ -51,7 +51,7 @@
                 <ul class="space-y-2">
                     <li><a href="#" class="text-gray-400 hover:text-white transition-colors duration-200">Help Center</a></li>
                     <li><a href="#" class="text-gray-400 hover:text-white transition-colors duration-200">Contact Us</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-white transition-colors duration-200">Privacy Policy</a></li>
+                    <li><a href="{{ route('popia') }}" class="text-gray-400 hover:text-white transition-colors duration-200">POPIA Policy</a></li>
                     <li><a href="#" class="text-gray-400 hover:text-white transition-colors duration-200">Terms of Service</a></li>
                 </ul>
             </div>
@@ -63,7 +63,7 @@
                     &copy; {{ date('Y') }} My Gig Guide. All rights reserved.
                 </p>
                 <p class="text-gray-400 text-sm mt-2 md:mt-0">
-                    Made with ❤️ for music lovers everywhere
+                    Created by <a href="https://kayiseit.co.za" class="text-purple-400 hover:text-white font-semibold" target="_blank" rel="noopener">KAYISE IT</a> — promoting KAYISE IT
                 </p>
             </div>
         </div>

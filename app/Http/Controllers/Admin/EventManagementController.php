@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
-use Illuminate\Support\Facades\Validator;
+use App\Models\Artist;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class EventManagementController extends Controller
 {
@@ -20,9 +20,9 @@ class EventManagementController extends Controller
         // Search functionality
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -39,14 +39,16 @@ class EventManagementController extends Controller
     public function create()
     {
         // Get all users with their roles for creating events on behalf of them
-        $users = User::with('roles')->get()->map(function($user) {
+        $users = User::with('roles')->get()->map(function ($user) {
             $user->role_name = $user->roles->first()->name ?? 'user';
+
             return $user;
         });
-        
+
         $venues = Venue::all();
-        
-        return view('admin.events.create', compact('users', 'venues'));
+        $artists = Artist::all();
+
+        return view('admin.events.create', compact('users', 'venues', 'artists'));
     }
 
     public function store(Request $request)
@@ -64,6 +66,10 @@ class EventManagementController extends Controller
             'poster' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'gallery' => 'nullable|array|max:10',
             'gallery.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categories,id',
+            'artists' => 'nullable|array',
+            'artists.*' => 'exists:artists,id',
         ]);
 
         if ($validator->fails()) {
@@ -81,14 +87,14 @@ class EventManagementController extends Controller
         // Handle poster upload
         $posterPath = null;
         if ($request->hasFile('poster')) {
-            $posterPath = $request->file('poster')->store($eventFolder . '/poster', 'public');
+            $posterPath = $request->file('poster')->store($eventFolder.'/poster', 'public');
         }
 
         // Handle gallery uploads
         $galleryPaths = [];
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $image) {
-                $galleryPaths[] = $image->store($eventFolder . '/gallery', 'public');
+                $galleryPaths[] = $image->store($eventFolder.'/gallery', 'public');
             }
         }
 
@@ -107,6 +113,16 @@ class EventManagementController extends Controller
             'owner_type' => $userRole,
         ]);
 
+        // Attach categories
+        if ($request->has('categories')) {
+            $event->categories()->attach($request->categories);
+        }
+
+        // Attach artists
+        if ($request->has('artists')) {
+            $event->artists()->attach($request->artists);
+        }
+
         return redirect()->route('admin.events.index')
             ->with('success', "Event created successfully on behalf of {$user->name} ({$userRole}).");
     }
@@ -116,34 +132,36 @@ class EventManagementController extends Controller
         $safeName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $eventName));
         $randomSuffix = str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
         $date = now()->format('Y-m-d');
-        
+
         $folderName = "event_{$randomSuffix}_{$safeName}_{$date}";
-        $eventFolder = $userFolder . '/events/' . $folderName;
-        
-        Storage::disk('public')->makeDirectory($eventFolder . '/poster');
-        Storage::disk('public')->makeDirectory($eventFolder . '/gallery');
-        Storage::disk('public')->makeDirectory($eventFolder . '/documents');
-        
+        $eventFolder = $userFolder.'/events/'.$folderName;
+
+        Storage::disk('public')->makeDirectory($eventFolder.'/poster');
+        Storage::disk('public')->makeDirectory($eventFolder.'/gallery');
+        Storage::disk('public')->makeDirectory($eventFolder.'/documents');
+
         return $eventFolder;
     }
 
     public function show(Event $event)
     {
         $event->load(['venue', 'owner', 'artists']);
+
         return view('admin.events.show', compact('event'));
     }
 
     public function edit(Event $event)
     {
         // Get all users with their roles for editing events on behalf of them
-        $users = User::with('roles')->get()->map(function($user) {
+        $users = User::with('roles')->get()->map(function ($user) {
             $user->role_name = $user->roles->first()->name ?? 'user';
+
             return $user;
         });
-        
+
         $venues = Venue::all();
         $event->load(['venue', 'owner']);
-        
+
         return view('admin.events.edit', compact('event', 'users', 'venues'));
     }
 
@@ -152,7 +170,7 @@ class EventManagementController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'required|string',
-            'date' => 'required|date',
+            'date' => 'required|date|after_or_equal:today',
             'time' => 'required|date_format:H:i',
             'venue_id' => 'required|exists:venues,id',
             'price' => 'required|numeric|min:0',
@@ -162,6 +180,8 @@ class EventManagementController extends Controller
             'poster' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'gallery' => 'nullable|array|max:10',
             'gallery.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categories,id',
         ]);
 
         if ($validator->fails()) {
@@ -183,25 +203,37 @@ class EventManagementController extends Controller
             if ($event->poster && Storage::disk('public')->exists($event->poster)) {
                 Storage::disk('public')->delete($event->poster);
             }
-            $posterPath = $request->file('poster')->store($eventFolder . '/poster', 'public');
+            $posterPath = $request->file('poster')->store($eventFolder.'/poster', 'public');
         }
 
-        // Handle gallery uploads
-        $galleryPaths = $event->gallery ? json_decode($event->gallery, true) : [];
-        if ($request->hasFile('gallery')) {
-            // Delete old gallery images if exists
-            if ($event->gallery) {
-                foreach (json_decode($event->gallery, true) as $image) {
-                    if (Storage::disk('public')->exists($image)) {
-                        Storage::disk('public')->delete($image);
-                    }
+        // Handle gallery updates (deletions + additions without wiping all)
+        $existingGallery = is_array($event->gallery) ? $event->gallery : [];
+
+        // Deletions from UI (delete_gallery[] contains original storage paths)
+        $deleteGallery = (array) $request->input('delete_gallery', []);
+        if (!empty($deleteGallery)) {
+            foreach ($deleteGallery as $path) {
+                // Remove from array
+                $idx = array_search($path, $existingGallery, true);
+                if ($idx !== false) {
+                    unset($existingGallery[$idx]);
+                }
+                // Delete from disk
+                if ($path && Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
                 }
             }
-            $galleryPaths = [];
+            // Re-index
+            $existingGallery = array_values($existingGallery);
+        }
+
+        // Additions
+        if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $image) {
-                $galleryPaths[] = $image->store($eventFolder . '/gallery', 'public');
+                $existingGallery[] = $image->store($eventFolder.'/gallery', 'public');
             }
         }
+        $galleryPaths = array_values($existingGallery);
 
         $event->update([
             'name' => $request->name,
@@ -217,6 +249,13 @@ class EventManagementController extends Controller
             'owner_id' => $request->user_id,
             'owner_type' => $userRole,
         ]);
+
+        // Sync categories
+        if ($request->has('categories')) {
+            $event->categories()->sync($request->categories);
+        } else {
+            $event->categories()->detach();
+        }
 
         return redirect()->route('admin.events.show', $event)
             ->with('success', "Event updated successfully. Ownership transferred to {$user->name} ({$userRole}).");

@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Event;
-use App\Models\Venue;
 use App\Models\Rating;
+use App\Models\Venue;
+use Illuminate\Console\Command;
 
 class UpdateMorphTypes extends Command
 {
@@ -32,10 +32,10 @@ class UpdateMorphTypes extends Command
 
         // Update Events table
         $this->updateEvents();
-        
+
         // Update Venues table
         $this->updateVenues();
-        
+
         // Update Ratings table
         $this->updateRatings();
 
@@ -45,7 +45,7 @@ class UpdateMorphTypes extends Command
     private function updateEvents()
     {
         $this->info('Updating Events table...');
-        
+
         $events = Event::where('owner_type', 'App\Models\Artist')->get();
         $this->info("Found {$events->count()} events with App\Models\Artist");
         foreach ($events as $event) {
@@ -68,7 +68,7 @@ class UpdateMorphTypes extends Command
     private function updateVenues()
     {
         $this->info('Updating Venues table...');
-        
+
         $venues = Venue::where('owner_type', 'App\Models\Artist')->get();
         $this->info("Found {$venues->count()} venues with App\Models\Artist");
         foreach ($venues as $venue) {
@@ -91,7 +91,7 @@ class UpdateMorphTypes extends Command
     private function updateRatings()
     {
         $this->info('Updating Ratings table...');
-        
+
         $ratings = Rating::where('rateable_type', 'App\Models\Event')->get();
         $this->info("Found {$ratings->count()} ratings with App\Models\Event");
         foreach ($ratings as $rating) {

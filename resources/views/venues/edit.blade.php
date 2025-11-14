@@ -268,11 +268,8 @@ function initAutocomplete() {
 
 // Load Google Maps API
 function loadGoogleMaps() {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&callback=initAutocomplete`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+    // Use centralized loader instead of injecting script directly
+    addGoogleMapsCallback(() => initAutocomplete());
 }
 
 // Initialize when page loads

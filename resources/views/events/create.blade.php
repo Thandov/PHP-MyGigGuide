@@ -3,6 +3,33 @@
 @section('title', 'Create Event - My Gig Guide')
 @section('description', 'Create a new event and manage all the details.')
 
+@push('styles')
+<style>
+    /* Ensure Google Places Autocomplete dropdown appears above other elements */
+    .pac-container {
+        z-index: 9999 !important;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        margin-top: 4px;
+    }
+    
+    .pac-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .pac-item:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .pac-item-selected {
+        background-color: #ede9fe !important;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -153,26 +180,20 @@
                         @enderror
                     </div>
 
-                    <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
-                            Category
+                    <div class="md:col-span-2">
+                        <label for="categories" class="block text-sm font-medium text-gray-700 mb-2">
+                            Categories
                         </label>
-                        <select
-                            id="category"
-                            name="category"
-                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('category') border-red-300 @enderror"
-                        >
-                            <option value="">Select category</option>
-                            <option value="concert" {{ old('category') == 'concert' ? 'selected' : '' }}>Concert</option>
-                            <option value="festival" {{ old('category') == 'festival' ? 'selected' : '' }}>Festival</option>
-                            <option value="club" {{ old('category') == 'club' ? 'selected' : '' }}>Club Night</option>
-                            <option value="theater" {{ old('category') == 'theater' ? 'selected' : '' }}>Theater</option>
-                            <option value="comedy" {{ old('category') == 'comedy' ? 'selected' : '' }}>Comedy</option>
-                            <option value="other" {{ old('category') == 'other' ? 'selected' : '' }}>Other</option>
-                        </select>
-                        @error('category')
+                        <x-category-combobox 
+                            name="categories" 
+                            :values="old('categories', [])"
+                            placeholder="Select event categories (e.g., Concert, Festival)..."
+                            class="@error('categories') border-red-300 @enderror"
+                        />
+                        @error('categories')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        <p class="mt-1 text-sm text-gray-500">Choose one or more categories that best describe your event</p>
                     </div>
                 </div>
             </div>
@@ -185,24 +206,50 @@
                     <label for="venue_id" class="block text-sm font-medium text-gray-700 mb-2">
                         Select Venue *
                     </label>
-                    <select
-                        id="venue_id"
-                        name="venue_id"
+                    <x-venue-selector 
+                        name="venue_id" 
+                        :selectedVenueId="old('venue_id')"
+                        placeholder="Choose a venue for your event..."
+                        userRole="organiser"
+                        :organiserId="auth()->user()->id"
                         required
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('venue_id') border-red-300 @enderror"
-                    >
-                        <option value="">Choose a venue</option>
-                        @foreach($venues as $venue)
-                            <option value="{{ $venue->id }}" {{ old('venue_id') == $venue->id ? 'selected' : '' }}>
-                                {{ $venue->name }} - {{ $venue->address }}
-                            </option>
-                        @endforeach
-                    </select>
+                        :hasError="$errors->has('venue_id')"
+                    />
                     @error('venue_id')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
+                    
+                    <div id="quick-venue-panel" class="mt-4 hidden">
+                        <div class="rounded-xl border border-purple-200 bg-purple-50/40 p-4">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-purple-900">Quick add venue</p>
+                                    <p class="text-xs text-purple-700 mt-1">Create a basic venue now. You can complete the profile later.</p>
+                                </div>
+                                <button type="button" id="close-quick-venue" class="text-purple-600 hover:text-purple-800 text-2xl leading-none">×</button>
+                            </div>
+                            <div class="mt-3 space-y-3">
+                                <div>
+                                    <input type="text" id="quick-venue-name" placeholder="Venue name*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <input type="text" id="quick-venue-address" placeholder="Search for address or place*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" autocomplete="off" />
+                                    <p class="mt-1 text-xs text-gray-500">💡 Start typing to search for places using Google</p>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input type="number" id="quick-venue-capacity" placeholder="Capacity (optional)" min="1" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+                                    <input type="tel" id="quick-venue-phone" placeholder="Phone (optional)" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 mt-3">
+                                <button type="button" id="quick-venue-save" class="btn-primary !py-2">Save Venue</button>
+                            </div>
+                            <p id="quick-venue-status" class="mt-2 text-sm text-gray-500"></p>
+                        </div>
+                    </div>
+                    
                     <p class="mt-2 text-sm text-gray-500">
-                        Don't see your venue? <a href="{{ route('venues.create') }}" class="text-purple-600 hover:text-purple-700">Add a new venue</a>
+                        Don't see your venue? <a href="#" id="open-quick-venue" class="text-purple-600 hover:text-purple-700">Add a new venue</a>
                     </p>
                 </div>
             </div>
@@ -213,30 +260,51 @@
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Select Artists
+                        Seleddct Artists
                     </label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach($artists as $artist)
-                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    name="artists[]"
-                                    value="{{ $artist->id }}"
-                                    {{ in_array($artist->id, old('artists', [])) ? 'checked' : '' }}
-                                    class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                />
-                                <div class="ml-3">
-                                    <div class="text-sm font-medium text-gray-900">{{ $artist->stage_name }}</div>
-                                    <div class="text-sm text-gray-500">{{ $artist->genre }}</div>
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="artist-search"
+                            placeholder="Search artists by name or genre..."
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            autocomplete="off"
+                        />
+                        <div
+                            id="artist-results"
+                            class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto hidden"
+                        ></div>
+                    </div>
+                    <div id="selected-artists" class="mt-3 flex flex-wrap gap-2"></div>
+                    <div id="artist-hidden-inputs"></div>
+                    <div id="quick-artist-panel" class="mt-4 hidden">
+                        <div class="rounded-xl border border-purple-200 bg-purple-50/40 p-4">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-purple-900">Quick add unclaimed artist</p>
+                                    <p class="text-xs text-purple-700 mt-1">Create a basic artist now. You can complete the profile later.</p>
                                 </div>
-                            </label>
-                        @endforeach
+                                <button type="button" id="close-quick-artist" class="text-purple-600 hover:text-purple-800">×</button>
+                            </div>
+                            <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <input type="text" id="quick-artist-name" placeholder="Stage name*" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+                                <x-genre-select 
+                                    id="quick-artist-genre" 
+                                    name="genre" 
+                                    placeholder="Genre (optional)" 
+                                />
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="quick-artist-save" class="btn-primary !py-2">Save</button>
+                                </div>
+                            </div>
+                            <p id="quick-artist-status" class="mt-2 text-sm text-gray-500"></p>
+                        </div>
                     </div>
                     @error('artists')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                     <p class="mt-2 text-sm text-gray-500">
-                        Don't see an artist? <a href="{{ route('artists.create') }}" class="text-purple-600 hover:text-purple-700">Add a new artist</a>
+                        Don't see an artist? <a href="{{ route('artists.create') }}" id="open-quick-artist" class="text-purple-600 hover:text-purple-700">Add a new artist</a>
                     </p>
                 </div>
             </div>
@@ -369,6 +437,408 @@ function previewGallery(input, previewId) {
 function removeGalleryImage(button) {
     button.parentElement.remove();
 }
+
+// Artist search + tag selector
+document.addEventListener('DOMContentLoaded', () => {
+    const allArtists = @json($artists->map->only(['id','stage_name','genre']));
+
+    const searchInput = document.getElementById('artist-search');
+    const resultsBox = document.getElementById('artist-results');
+    const selectedContainer = document.getElementById('selected-artists');
+    const hiddenInputsContainer = document.getElementById('artist-hidden-inputs');
+
+    const selectedIds = new Set(@json(old('artists', [])));
+
+    function renderSelectedTags() {
+        selectedContainer.innerHTML = '';
+        hiddenInputsContainer.innerHTML = '';
+        selectedIds.forEach((id) => {
+            const artist = allArtists.find(a => String(a.id) === String(id));
+            if (!artist) return;
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm';
+            tag.innerHTML = `${artist.stage_name}<button type="button" data-id="${artist.id}" class="ml-1 text-purple-600 hover:text-purple-800">×</button>`;
+            selectedContainer.appendChild(tag);
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'artists[]';
+            input.value = artist.id;
+            hiddenInputsContainer.appendChild(input);
+        });
+    }
+
+    function renderResults(items) {
+        if (!items.length) {
+            resultsBox.classList.add('hidden');
+            resultsBox.innerHTML = '';
+            return;
+        }
+        resultsBox.innerHTML = '';
+        items.slice(0, 30).forEach((artist) => {
+            const isSelected = selectedIds.has(String(artist.id)) || selectedIds.has(artist.id);
+            if (isSelected) return; // don't show already selected
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'w-full text-left px-3 py-2 hover:bg-gray-50 flex justify-between items-center';
+            row.innerHTML = `<span class="font-medium text-gray-900">${artist.stage_name}</span><span class="text-sm text-gray-500 ml-3">${artist.genre || ''}</span>`;
+            row.addEventListener('click', () => {
+                selectedIds.add(artist.id);
+                renderSelectedTags();
+                resultsBox.classList.add('hidden');
+                searchInput.value = '';
+            });
+            resultsBox.appendChild(row);
+        });
+        resultsBox.classList.remove('hidden');
+    }
+
+    function filter(query) {
+        const q = query.trim().toLowerCase();
+        if (!q) {
+            resultsBox.classList.add('hidden');
+            resultsBox.innerHTML = '';
+            return;
+        }
+        const matches = allArtists.filter(a =>
+            (a.stage_name && a.stage_name.toLowerCase().includes(q)) ||
+            (a.genre && a.genre.toLowerCase().includes(q))
+        );
+        renderResults(matches);
+    }
+
+    searchInput?.addEventListener('input', (e) => {
+        filter(e.target.value);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!resultsBox.contains(e.target) && e.target !== searchInput) {
+            resultsBox.classList.add('hidden');
+        }
+    });
+
+    selectedContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-id]');
+        if (!btn) return;
+        selectedIds.delete(String(btn.dataset.id));
+        renderSelectedTags();
+    });
+
+    renderSelectedTags();
+});
+</script>
+
+<script>
+// Quick add unclaimed artist
+document.addEventListener('DOMContentLoaded', () => {
+    const openLink = document.getElementById('open-quick-artist');
+    const panel = document.getElementById('quick-artist-panel');
+    const closeBtn = document.getElementById('close-quick-artist');
+    const saveBtn = document.getElementById('quick-artist-save');
+    const nameInput = document.getElementById('quick-artist-name');
+    const genreInput = document.getElementById('quick-artist-genre');
+    const status = document.getElementById('quick-artist-status');
+
+    if (!openLink) return;
+
+    function openPanel() {
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => nameInput.focus(), 200);
+        openLink.textContent = 'Close quick add';
+    }
+
+    openLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (panel.classList.contains('hidden')) {
+            openPanel();
+        } else {
+            panel.classList.add('hidden');
+            openLink.textContent = 'Add a new artist';
+        }
+    });
+
+    closeBtn.addEventListener('click', () => {
+        panel.classList.add('hidden');
+        openLink.textContent = 'Add a new artist';
+    });
+
+    saveBtn.addEventListener('click', async () => {
+        status.textContent = '';
+        const stage_name = nameInput.value.trim();
+        const genre = genreInput.value.trim();
+        if (!stage_name) {
+            status.textContent = 'Stage name is required';
+            status.classList.remove('text-green-600');
+            status.classList.add('text-red-600');
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.classList.add('opacity-60');
+        status.textContent = 'Saving...';
+        status.classList.remove('text-red-600');
+        status.classList.add('text-gray-500');
+
+        try {
+            const response = await fetch(`{{ route('artists.quick-store') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': `{{ csrf_token() }}`,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ stage_name, genre })
+            });
+
+            if (!response.ok) throw new Error('Request failed');
+            const artist = await response.json();
+
+            // Add to selected tags immediately
+            const selectedContainer = document.getElementById('selected-artists');
+            const hiddenInputsContainer = document.getElementById('artist-hidden-inputs');
+
+            // Create tag
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm';
+            tag.innerHTML = `${artist.stage_name}<button type="button" data-id="${artist.id}" class="ml-1 text-purple-600 hover:text-purple-800">×</button>`;
+            selectedContainer.appendChild(tag);
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'artists[]';
+            input.value = artist.id;
+            hiddenInputsContainer.appendChild(input);
+
+            status.textContent = 'Added';
+            status.classList.remove('text-gray-500');
+            status.classList.add('text-green-600');
+            nameInput.value = '';
+            genreInput.value = '';
+            panel.classList.add('hidden');
+            openLink.textContent = 'Add a new artist';
+        } catch (e) {
+            status.textContent = 'Failed to save';
+            status.classList.remove('text-gray-500');
+            status.classList.add('text-red-600');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('opacity-60');
+        }
+    });
+});
+</script>
+
+<script>
+let venueAutocomplete;
+let selectedVenueCoordinates = { latitude: null, longitude: null };
+
+// Initialize Google Places Autocomplete for venue address
+function initVenueAutocomplete() {
+    const addressInput = document.getElementById('quick-venue-address');
+    if (!addressInput || !window.google || !window.google.maps) return;
+
+    venueAutocomplete = new google.maps.places.Autocomplete(addressInput, {
+        types: ['establishment', 'geocode'],
+        componentRestrictions: { country: 'za' } // Restrict to South Africa
+    });
+
+    venueAutocomplete.addListener('place_changed', function() {
+        const place = venueAutocomplete.getPlace();
+        
+        if (!place.geometry || !place.geometry.location) {
+            console.log('No details available for input: ' + place.name);
+            return;
+        }
+
+        // Use the formatted address from Google
+        addressInput.value = place.formatted_address;
+        
+        // Store coordinates
+        selectedVenueCoordinates.latitude = place.geometry.location.lat();
+        selectedVenueCoordinates.longitude = place.geometry.location.lng();
+        
+        // Auto-fill venue name if empty and place has a name
+        const nameInput = document.getElementById('quick-venue-name');
+        if (!nameInput.value && place.name) {
+            nameInput.value = place.name;
+        }
+
+        console.log('Venue selected:', place.formatted_address);
+        console.log('Coordinates:', selectedVenueCoordinates);
+    });
+}
+
+// Load Google Maps API if not already loaded
+function loadGoogleMapsForVenue() {
+    // Check if Google Maps is already loaded
+    if (window.google && window.google.maps) {
+        initVenueAutocomplete();
+        return;
+    }
+
+    // Check if script is already being loaded
+    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+        // Wait for it to load
+        const checkGoogleMaps = setInterval(() => {
+            if (window.google && window.google.maps) {
+                clearInterval(checkGoogleMaps);
+                initVenueAutocomplete();
+            }
+        }, 100);
+        return;
+    }
+
+    // Load the script
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&callback=initVenueAutocomplete`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+}
+
+// Quick add venue
+document.addEventListener('DOMContentLoaded', () => {
+    const openLink = document.getElementById('open-quick-venue');
+    const panel = document.getElementById('quick-venue-panel');
+    const closeBtn = document.getElementById('close-quick-venue');
+    const saveBtn = document.getElementById('quick-venue-save');
+    const nameInput = document.getElementById('quick-venue-name');
+    const addressInput = document.getElementById('quick-venue-address');
+    const capacityInput = document.getElementById('quick-venue-capacity');
+    const phoneInput = document.getElementById('quick-venue-phone');
+    const status = document.getElementById('quick-venue-status');
+    const venueSelect = document.getElementById('venue_id');
+
+    if (!openLink) return;
+
+    // Load Google Maps API when page loads
+    loadGoogleMapsForVenue();
+
+    function openPanel() {
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => nameInput.focus(), 200);
+        openLink.textContent = 'Close quick add';
+    }
+
+    openLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (panel.classList.contains('hidden')) {
+            openPanel();
+        } else {
+            panel.classList.add('hidden');
+            openLink.textContent = 'Add a new venue';
+        }
+    });
+
+    closeBtn.addEventListener('click', () => {
+        panel.classList.add('hidden');
+        openLink.textContent = 'Add a new venue';
+    });
+
+    saveBtn.addEventListener('click', async () => {
+        status.textContent = '';
+        const name = nameInput.value.trim();
+        const address = addressInput.value.trim();
+        const capacity = capacityInput.value.trim();
+        const phone = phoneInput.value.trim();
+
+        if (!name) {
+            status.textContent = 'Venue name is required';
+            status.classList.remove('text-green-600');
+            status.classList.add('text-red-600');
+            return;
+        }
+
+        if (!address) {
+            status.textContent = 'Address is required';
+            status.classList.remove('text-green-600');
+            status.classList.add('text-red-600');
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.classList.add('opacity-60');
+        status.textContent = 'Saving...';
+        status.classList.remove('text-red-600');
+        status.classList.add('text-gray-500');
+
+        try {
+            // Prepare data including coordinates from Google Places
+            const venueData = { 
+                name,
+                address,
+                latitude: selectedVenueCoordinates.latitude,
+                longitude: selectedVenueCoordinates.longitude
+            };
+            if (capacity) {
+                const parsedCap = parseInt(capacity, 10);
+                if (!Number.isNaN(parsedCap)) venueData.capacity = parsedCap;
+            }
+            if (phone) {
+                venueData.phone = phone;
+            }
+
+            const response = await fetch(`{{ route('venues.quick-store') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': `{{ csrf_token() }}`,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(venueData)
+            });
+            if (!response.ok) {
+                let message = 'Request failed';
+                try {
+                    const err = await response.json();
+                    if (err && err.message) message = err.message;
+                    // Show first validation error if present
+                    if (err && err.errors) {
+                        const firstKey = Object.keys(err.errors)[0];
+                        if (firstKey && err.errors[firstKey][0]) message = err.errors[firstKey][0];
+                    }
+                } catch (_) {}
+                throw new Error(message);
+            }
+            const venue = await response.json();
+
+            // Select the new venue in the Alpine-powered venue selector
+            const hiddenInput = document.querySelector('input[name="venue_id"]');
+            if (hiddenInput) hiddenInput.value = venue.id;
+            
+            // Update Alpine component state if available to reflect selection in UI
+            const venueSelectorRoot = document.querySelector('.venue-selector');
+            // Broadcast a window-level event so the venue selector can react
+            window.dispatchEvent(new CustomEvent('venue-quick-added', { detail: { venue } }));
+
+            status.textContent = 'Venue added and selected!';
+            status.classList.remove('text-gray-500');
+            status.classList.add('text-green-600');
+            
+            // Clear form and coordinates
+            nameInput.value = '';
+            addressInput.value = '';
+            capacityInput.value = '';
+            phoneInput.value = '';
+            selectedVenueCoordinates = { latitude: null, longitude: null };
+            
+            // Close panel immediately and scroll to selector so the user sees selection
+            panel.classList.add('hidden');
+            openLink.textContent = 'Add a new venue';
+            const selectorDisplay = document.querySelector('.venue-selector');
+            if (selectorDisplay) selectorDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (e) {
+            status.textContent = e && e.message ? e.message : 'Failed to save venue';
+            status.classList.remove('text-gray-500');
+            status.classList.add('text-red-600');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('opacity-60');
+        }
+    });
+});
 </script>
 @endsection
 

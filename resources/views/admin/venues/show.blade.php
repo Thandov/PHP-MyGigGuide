@@ -85,7 +85,13 @@
                             <div>
                                 <label class="text-sm font-medium text-gray-500">Gallery Images</label>
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-                                    @foreach(json_decode($venue->venue_gallery, true) as $image)
+                                    @php
+                                        $galleryImages = is_string($venue->venue_gallery)
+                                            ? json_decode($venue->venue_gallery, true)
+                                            : ($venue->venue_gallery ?? []);
+                                        if (!is_array($galleryImages)) { $galleryImages = []; }
+                                    @endphp
+                                    @foreach($galleryImages as $image)
                                         <img src="{{ Storage::url($image) }}" alt="Gallery Image" class="h-32 w-full object-cover rounded-lg">
                                     @endforeach
                                 </div>
@@ -145,9 +151,8 @@
                             View Public Page
                         </a>
                         
-                        <form method="POST" action="{{ route('admin.venues.destroy', $venue) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this venue?')">
+                        <form method="POST" action="{{ route('admin.venues.destroy.post', $venue) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this venue?')">
                             @csrf
-                            @method('DELETE')
                             <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
                                 Delete Venue
                             </button>

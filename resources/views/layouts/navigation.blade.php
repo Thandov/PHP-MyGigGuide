@@ -14,9 +14,9 @@
                 <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'nav-link-active' : '' }}">Home</a>
                 <a href="{{ route('events.index') }}" class="nav-link {{ request()->routeIs('events.*') ? 'nav-link-active' : '' }}">Events</a>
                 <a href="{{ route('artists.index') }}" class="nav-link {{ request()->routeIs('artists.*') ? 'nav-link-active' : '' }}">Artists</a>
-                <a href="{{ url('/about') }}" class="nav-link {{ request()->is('about') ? 'nav-link-active' : '' }}">About</a>
                 <a href="{{ route('venues.index') }}" class="nav-link {{ request()->routeIs('venues.*') ? 'nav-link-active' : '' }}">Venues</a>
-                <a href="{{ url('/contact') }}" class="nav-link {{ request()->is('contact') ? 'nav-link-active' : '' }}">Contact</a>
+                <a href="{{ url('/about') }}" class="nav-link {{ request()->is('about') ? 'nav-link-active' : '' }}">About</a>
+                <a href="{{ route('contact.index') }}" class="nav-link {{ request()->routeIs('contact.*') ? 'nav-link-active' : '' }}">Contact</a>
                 
                 @auth
                     @if(auth()->user()->hasRole(['admin', 'superuser']))
@@ -33,9 +33,20 @@
                     <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                         <button @click="open = !open" class="flex items-center space-x-3 text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-lg px-3 py-2 transition-colors duration-200">
                             <div class="relative">
-                                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center shadow-sm">
-                                    <span class="text-white text-sm font-semibold">{{ substr(auth()->user()->name, 0, 1) }}</span>
-                                </div>
+                                @php
+                                    $userProfileImage = null;
+                                    if (auth()->user()->profile_picture && !str_contains(auth()->user()->profile_picture, '/tmp/php') && !str_contains(auth()->user()->profile_picture, 'tmp.php')) {
+                                        $userProfileImage = Storage::url(auth()->user()->profile_picture);
+                                    }
+                                @endphp
+                                
+                                @if($userProfileImage)
+                                    <img src="{{ $userProfileImage }}" alt="{{ auth()->user()->name }}" class="h-8 w-8 rounded-full object-cover shadow-sm">
+                                @else
+                                    <div class="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center shadow-sm">
+                                        <span class="text-white text-sm font-semibold">{{ substr(auth()->user()->name, 0, 1) }}</span>
+                                    </div>
+                                @endif
                                 @if(auth()->user()->hasRole(['admin', 'superuser']))
                                     <div class="absolute -top-1 -right-1 h-4 w-4 bg-yellow-400 rounded-full flex items-center justify-center">
                                         <svg class="h-2.5 w-2.5 text-yellow-800" fill="currentColor" viewBox="0 0 20 20">
@@ -122,7 +133,7 @@
             <a href="{{ url('/about') }}" class="mobile-nav-link {{ request()->is('about') ? 'mobile-nav-link-active' : '' }}">About</a>
             <a href="{{ route('venues.index') }}" class="mobile-nav-link {{ request()->routeIs('venues.*') ? 'mobile-nav-link-active' : '' }}">Venues</a>
             <a href="{{ route('organisers.index') }}" class="mobile-nav-link {{ request()->routeIs('organisers.*') ? 'mobile-nav-link-active' : '' }}">Organisers</a>
-            <a href="{{ url('/contact') }}" class="mobile-nav-link {{ request()->is('contact') ? 'mobile-nav-link-active' : '' }}">Contact</a>
+            <a href="{{ route('contact.index') }}" class="mobile-nav-link {{ request()->routeIs('contact.*') ? 'mobile-nav-link-active' : '' }}">Contact</a>
         </div>
     </div>
 </nav>

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Organiser;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class OrganiserManagementController extends Controller
@@ -16,9 +16,9 @@ class OrganiserManagementController extends Controller
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('organisation_name', 'like', "%{$search}%")
-                  ->orWhere('contact_person', 'like', "%{$search}%");
+                    ->orWhere('contact_person', 'like', "%{$search}%");
             });
         }
 
@@ -29,10 +29,10 @@ class OrganiserManagementController extends Controller
 
     public function create()
     {
-        $users = User::whereHas('roles', function($q) {
+        $users = User::whereHas('roles', function ($q) {
             $q->where('name', 'organiser');
         })->get();
-        
+
         return view('admin.organisers.create', compact('users'));
     }
 
@@ -61,15 +61,16 @@ class OrganiserManagementController extends Controller
     public function show(Organiser $organiser)
     {
         $organiser->load('user');
+
         return view('admin.organisers.show', compact('organiser'));
     }
 
     public function edit(Organiser $organiser)
     {
-        $users = User::whereHas('roles', function($q) {
+        $users = User::whereHas('roles', function ($q) {
             $q->where('name', 'organiser');
         })->get();
-        
+
         return view('admin.organisers.edit', compact('organiser', 'users'));
     }
 
@@ -104,9 +105,8 @@ class OrganiserManagementController extends Controller
 
     public function toggleStatus(Organiser $organiser)
     {
-        $organiser->update(['is_active' => !$organiser->is_active]);
+        $organiser->update(['is_active' => ! $organiser->is_active]);
 
         return back()->with('success', 'Organiser status updated successfully.');
     }
 }
-

@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
+
 @section('title', 'Home - Discover Amazing Events')
 @section('description', 'Find the best concerts, festivals, and events happening in your area')
+
 
 @section('content')
 <div class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
@@ -13,9 +15,7 @@
         <!-- Simple Icon -->
         <div class="flex justify-center mb-8">
           <div class="bg-gradient-to-r from-purple-600 to-blue-600 p-4 rounded-2xl shadow-sm">
-            <svg class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-            </svg>
+            <img src="{{ asset('logos/logo1.jpeg') }}" alt="Logo" class="h-24 w-24 object-contain" />
           </div>
         </div>
 
@@ -37,39 +37,19 @@
         <p class="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto">
           Find the best concerts, festivals, and events happening in your area
         </p>
-
-        <!-- Clean Search Bar -->
-        <div class="max-w-2xl mx-auto mb-8">
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <form action="{{ route('events.index') }}" method="GET" class="relative">
-              <input
-                type="text"
-                name="search"
-                placeholder="Search events, artists, venues..."
-                class="block w-full pl-12 pr-32 py-4 border border-purple-200 rounded-2xl text-lg placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-sm"
-              />
-              <div class="absolute inset-y-0 right-0 pr-2 flex items-center">
-                <button
-                  type="submit"
-                  class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium py-2 px-6 rounded-xl transition-all duration-300 flex items-center gap-2 hover:scale-105 shadow-sm"
-                >
-                  <span>Search</span>
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
+        <div class="relative">
+        <x-google-map 
+          :events="$mapEvents ?? $events" 
+          :categories-list="$categories"
+          height="400px" 
+          :show-legend="true" 
+          :compact="false"
+          :center="['lat' => -26.2041, 'lng' => 28.0473]"
+          id="home-map"
+        />
+      </div>
         <!-- Clean Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
           <a 
             href="{{ route('events.index') }}"
             class="bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 px-8 py-3 rounded-xl font-medium transition-all duration-300 flex items-center space-x-2 shadow-sm hover:shadow-md"
@@ -89,46 +69,12 @@
             <span>Discover Artists</span>
           </a>
         </div>
+        
       </div>
     </div>
   </section>
 
-  <!-- Featured (Paid) Sections -->
-  <section class="py-8 bg-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <!-- Featured Artists - Simple version like React -->
-      @if($artists->count() > 0)
-      <section class="my-8">
-        <h3 class="text-lg font-semibold mb-3">Featured Artists This Week</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          @foreach($artists->take(4) as $artist)
-          <a href="{{ route('artists.show', $artist) }}" class="block bg-white border rounded-lg p-4 hover:shadow">
-            <div class="text-sm text-gray-600">Artist ID #{{ $artist->id }}</div>
-            <div class="text-xs text-gray-500">{{ $artist->stage_name }}</div>
-          </a>
-          @endforeach
-        </div>
-      </section>
-      @endif
-
-      <!-- Featured Events - Simple version like React -->
-      @if($events->count() > 0)
-      <section class="my-8">
-        <h3 class="text-lg font-semibold mb-3">Featured Events</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          @foreach($events->take(4) as $event)
-          <a href="{{ route('events.show', $event) }}" class="block bg-white border rounded-lg p-4 hover:shadow">
-            <div class="text-sm text-gray-600">Event ID #{{ $event->id }}</div>
-            <div class="text-xs text-gray-500">{{ $event->name }}</div>
-          </a>
-          @endforeach
-        </div>
-      </section>
-      @endif
-    </div>
-  </section>
-
-  <!-- Live Events Map Section -->
+<!--  Live Events Map Section (moved up so map and its info are together and prominent)
   <section class="py-16 bg-gradient-to-br from-purple-50 via-white to-blue-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-12">
@@ -140,28 +86,16 @@
           </div>
         </div>
         <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-          Events 
+          My Gig Guide 
           <span class="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Near You
+            Map
           </span>
         </h2>
         <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-          Discover what's happening around your location. Click on any marker to see event details.
+          Find live gigs happening around Johannesburg. Click on any marker to see event details.
         </p>
       </div>
 
-      <!-- Map Container -->
-      <div class="relative">
-        <x-google-map 
-          :events="$events" 
-          height="400px" 
-          :show-legend="true" 
-          :compact="false"
-          id="home-map"
-        />
-      </div>
-
-      <!-- Quick Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         <div class="bg-white border border-purple-100 rounded-xl p-6 text-center shadow-sm">
           <div class="text-2xl font-bold text-purple-600 mb-2">{{ $events->count() }}</div>
@@ -177,7 +111,111 @@
         </div>
       </div>
     </div>
-  </section>
+  </section> -->
+
+  <!-- Featured (Paid) Sections -->
+  <section class="py-8 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Featured Events - Modern Design -->
+          @if($events->count() > 0)
+      <section class="py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            What We're About
+            </h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+              Building a community of music lovers, one gig at a time
+            </p>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            @foreach($events->take(4) as $event)
+              <x-event-card :event="$event" />
+            @endforeach
+          </div>
+          
+          <div class="text-center">
+            <a href="{{ route('events.index') }}" 
+               class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+              <span>View All Events</span>
+              <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
+      @endif 
+    <!-- Featured Artists - Simple version like React -->
+      @if($artists->count() > 0)
+      <section class="py-16 bg-gradient-to-br from-purple-50 via-white to-blue-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Featured Artists
+            </h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+              Discover talented musicians and performers in your area. From rock to jazz, find your next favorite artist.
+            </p>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            @foreach($artists->take(4) as $artist)
+              <x-artist-card :artist="$artist" />
+            @endforeach
+          </div>
+          
+          <div class="text-center">
+            <a href="{{ route('artists.index') }}" 
+               class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+              <span>View All Artists</span>
+              <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
+      @endif
+      </section>
+
+
+      <!-- Featured Venues - Modern Design -->
+      @if($venues->count() > 0)
+      <section class="py-16 bg-gradient-to-br from-green-50 via-white to-teal-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Popular Venues
+            </h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+              Discover amazing venues where the magic happens. From intimate clubs to grand concert halls, find the perfect setting for your next event.
+            </p>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            @foreach($venues->take(4) as $venue)
+              <x-venue-card :venue="$venue" />
+            @endforeach
+          </div>
+          
+          <div class="text-center">
+            <a href="{{ route('venues.index') }}" 
+               class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+              <span>View All Venues</span>
+              <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
+      @endif
+    </div>
+
+
+  
 
   <!-- Featured Events Section -->
   <section class="py-16 bg-white">
@@ -328,6 +366,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cleanup function (equivalent to React useEffect cleanup)
     return () => clearInterval(interval);
 });
+
+// Using your existing x-google-map exclusively; no extra loader here
 </script>
+
 @endpush
 @endsection

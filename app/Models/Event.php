@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -30,9 +29,67 @@ class Event extends Model
 
     protected $casts = [
         'date' => 'datetime',
-        'time' => 'datetime:H:i',
+        'time' => 'datetime',
         'gallery' => 'array',
     ];
+
+    // Mutator to handle time field conversion
+    public function setTimeAttribute($value)
+    {
+        if ($value && is_string($value)) {
+            // If it's just time format (H:i), combine with today's date
+            if (preg_match('/^\d{2}:\d{2}$/', $value)) {
+                $this->attributes['time'] = now()->format('Y-m-d') . ' ' . $value;
+            } else {
+                $this->attributes['time'] = $value;
+            }
+        } else {
+            $this->attributes['time'] = $value;
+        }
+    }
+
+    // Accessor to format time for display
+    public function getTimeAttribute($value)
+    {
+        if ($value) {
+            return \Carbon\Carbon::parse($value);
+        }
+        return $value;
+    }
+
+    // Mutator to sanitize gallery assignment and prevent storing temp paths
+    public function setGalleryAttribute($value)
+    {
+        if (is_array($value)) {
+            $sanitized = [];
+            foreach ($value as $path) {
+                if ($path && (strpos($path, '/tmp/php') !== false || strpos($path, 'tmp.php') !== false)) {
+                    \Log::warning('Event gallery was attempted to store non-final path: '.$path);
+
+                    continue; // Skip invalid temp paths
+                } elseif ($path) {
+                    $sanitized[] = $path;
+                }
+            }
+            $this->attributes['gallery'] = json_encode($sanitized);
+        } elseif ($value && (strpos($value, '/tmp/php') !== false || strpos($value, 'tmp.php') !== false)) {
+            \Log::warning('Event gallery was attempted to store non-final path: '.$value);
+            $this->attributes['gallery'] = null;
+        } else {
+            $this->attributes['gallery'] = $value;
+        }
+    }
+
+    // Mutator to sanitize poster assignment and prevent storing temp paths
+    public function setPosterAttribute($value)
+    {
+        if ($value && (strpos($value, '/tmp/php') !== false || strpos($value, 'tmp.php') !== false)) {
+            \Log::warning('Event poster was attempted to store non-final path: '.$value);
+            $this->attributes['poster'] = null;
+        } elseif ($value) {
+            $this->attributes['poster'] = $value;
+        }
+    }
 
     /**
      * Get the venue where the event is held.
@@ -72,5 +129,21 @@ class Event extends Model
     public function favoritedBy(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_event_favorites');
+    }
+
+    /**
+     * Get the genres for this event.
+     */
+    public function genres(): BelongsToMany
+    {
+        return $this->belongsToMany(Genre::class, 'event_genre');
+    }
+
+    /**
+     * Get the categories for this event.
+     */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'event_category');
     }
 }

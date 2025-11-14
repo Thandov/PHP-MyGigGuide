@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Event;
 use App\Models\Artist;
+use App\Models\Event;
 use App\Models\Organiser;
-use App\Models\Venue;
 use App\Models\Rating;
 use App\Models\User;
+use App\Models\Venue;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -19,8 +18,8 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -44,14 +43,14 @@ class DashboardController extends Controller
     public function artistDashboard()
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return redirect()->route('login');
         }
-        
+
         $artist = $user->artist;
-        
-        if (!$artist) {
+
+        if (! $artist) {
             // Create artist profile if it doesn't exist
             $artist = Artist::create([
                 'user_id' => $user->id,
@@ -63,28 +62,28 @@ class DashboardController extends Controller
         }
 
         // Get all events where artist is involved (either as owner or performer)
-        $allEvents = Event::where(function($query) use ($artist) {
+        $allEvents = Event::where(function ($query) use ($artist) {
             // Events owned by the artist
-            $query->where(function($subQuery) use ($artist) {
+            $query->where(function ($subQuery) use ($artist) {
                 $subQuery->where('owner_type', 'artist')
-                        ->where('owner_id', $artist->id);
+                    ->where('owner_id', $artist->id);
             })
             // OR events where artist is performing
-            ->orWhereHas('artists', function($artistQuery) use ($artist) {
-                $artistQuery->where('artist_id', $artist->id);
-            });
+                ->orWhereHas('artists', function ($artistQuery) use ($artist) {
+                    $artistQuery->where('artist_id', $artist->id);
+                });
         })
-        ->with(['venue', 'artists', 'owner'])
-        ->orderBy('date', 'desc')
-        ->get();
+            ->with(['venue', 'artists', 'owner'])
+            ->orderBy('date', 'desc')
+            ->get();
 
         // Get upcoming events (scheduled and future dates)
-        $upcomingEvents = $allEvents->filter(function($event) {
-            return $event->status === 'scheduled' && $event->date >= now();
+        $upcomingEvents = $allEvents->filter(function ($event) {
+            return $event->status === 'upcoming' && $event->date >= now();
         })->sortBy('date')->take(5);
 
         // Get past events
-        $pastEvents = $allEvents->filter(function($event) {
+        $pastEvents = $allEvents->filter(function ($event) {
             return $event->status === 'completed' || $event->date < now();
         })->sortByDesc('date')->take(5);
 
@@ -100,15 +99,20 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $stats = [
-            'total_events' => $allEvents->count(),
-            'upcoming_events' => $upcomingEvents->count(),
-            'venues_owned' => $venues->count(),
-            'average_rating' => $ratings->avg('rating') ?? 0,
-            'total_ratings' => $ratings->count(),
-        ];
+        $statsEnabled = config('features.dashboard_stats', true);
+        $stats = [];
 
-        return view('dashboard.artist', compact('artist', 'upcomingEvents', 'pastEvents', 'venues', 'ratings', 'stats'));
+        if ($statsEnabled) {
+            $stats = [
+                'total_events' => $allEvents->count(),
+                'upcoming_events' => $upcomingEvents->count(),
+                'venues_owned' => $venues->count(),
+                'average_rating' => $ratings->avg('rating') ?? 0,
+                'total_ratings' => $ratings->count(),
+            ];
+        }
+
+        return view('dashboard.artist', compact('artist', 'upcomingEvents', 'pastEvents', 'venues', 'ratings', 'stats', 'statsEnabled'));
     }
 
     /**
@@ -117,18 +121,18 @@ class DashboardController extends Controller
     public function organiserDashboard()
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return redirect()->route('login');
         }
-        
+
         $organiser = $user->organiser;
-        
-        if (!$organiser) {
+
+        if (! $organiser) {
             // Create organiser profile if it doesn't exist
             $organiser = Organiser::create([
                 'user_id' => $user->id,
-                'organisation_name' => $user->name . ' Events',
+                'organisation_name' => $user->name.' Events',
                 'contact_email' => $user->email,
                 'description' => 'Event organiser profile coming soon...',
             ]);
@@ -142,12 +146,12 @@ class DashboardController extends Controller
             ->get();
 
         // Get upcoming events (scheduled and future dates)
-        $upcomingEvents = $allEvents->filter(function($event) {
-            return $event->status === 'scheduled' && $event->date >= now();
+        $upcomingEvents = $allEvents->filter(function ($event) {
+            return $event->status === 'upcoming' && $event->date >= now();
         })->sortBy('date')->take(5);
 
         // Get past events
-        $pastEvents = $allEvents->filter(function($event) {
+        $pastEvents = $allEvents->filter(function ($event) {
             return $event->status === 'completed' || $event->date < now();
         })->sortByDesc('date')->take(5);
 
@@ -163,15 +167,20 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $stats = [
-            'total_events' => $allEvents->count(),
-            'upcoming_events' => $upcomingEvents->count(),
-            'venues_owned' => $venues->count(),
-            'average_rating' => $ratings->avg('rating') ?? 0,
-            'total_ratings' => $ratings->count(),
-        ];
+        $statsEnabled = config('features.dashboard_stats', true);
+        $stats = [];
 
-        return view('dashboard.organiser', compact('organiser', 'upcomingEvents', 'pastEvents', 'venues', 'ratings', 'stats'));
+        if ($statsEnabled) {
+            $stats = [
+                'total_events' => $allEvents->count(),
+                'upcoming_events' => $upcomingEvents->count(),
+                'venues_owned' => $venues->count(),
+                'average_rating' => $ratings->avg('rating') ?? 0,
+                'total_ratings' => $ratings->count(),
+            ];
+        }
+
+        return view('dashboard.organiser', compact('organiser', 'upcomingEvents', 'pastEvents', 'venues', 'ratings', 'stats', 'statsEnabled'));
     }
 
     /**
@@ -180,18 +189,18 @@ class DashboardController extends Controller
     public function venueOwnerDashboard()
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return redirect()->route('login');
         }
-        
+
         // Get venue owner's venues
         $venues = Venue::where('user_id', $user->id)->get();
 
         // Get events at these venues
         $venueIds = $venues->pluck('id');
         $upcomingEvents = Event::whereIn('venue_id', $venueIds)
-            ->where('status', 'scheduled')
+            ->where('status', 'upcoming')
             ->whereDate('date', '>=', now()->format('Y-m-d'))
             ->with(['venue', 'artists', 'owner'])
             ->orderBy('date', 'asc')
@@ -212,15 +221,20 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $stats = [
-            'total_venues' => $venues->count(),
-            'total_events' => $upcomingEvents->count() + $pastEvents->count(),
-            'upcoming_events' => $upcomingEvents->count(),
-            'average_rating' => $ratings->avg('rating') ?? 0,
-            'total_ratings' => $ratings->count(),
-        ];
+        $statsEnabled = config('features.dashboard_stats', true);
+        $stats = [];
 
-        return view('dashboard.venue-owner', compact('venues', 'upcomingEvents', 'pastEvents', 'ratings', 'stats'));
+        if ($statsEnabled) {
+            $stats = [
+                'total_venues' => $venues->count(),
+                'total_events' => $upcomingEvents->count() + $pastEvents->count(),
+                'upcoming_events' => $upcomingEvents->count(),
+                'average_rating' => $ratings->avg('rating') ?? 0,
+                'total_ratings' => $ratings->count(),
+            ];
+        }
+
+        return view('dashboard.venue-owner', compact('venues', 'upcomingEvents', 'pastEvents', 'ratings', 'stats', 'statsEnabled'));
     }
 
     /**
@@ -228,16 +242,21 @@ class DashboardController extends Controller
      */
     public function adminDashboard()
     {
-        $stats = [
-            'total_users' => User::count(),
-            'total_artists' => Artist::count(),
-            'total_organisers' => Organiser::count(),
-            'total_venues' => Venue::count(),
-            'total_events' => Event::count(),
-            'upcoming_events' => Event::where('status', 'scheduled')
-                ->whereDate('date', '>=', now()->format('Y-m-d'))
-                ->count(),
-        ];
+        $statsEnabled = config('features.dashboard_stats', true);
+        $stats = [];
+
+        if ($statsEnabled) {
+            $stats = [
+                'total_users' => User::count(),
+                'total_artists' => Artist::count(),
+                'total_organisers' => Organiser::count(),
+                'total_venues' => Venue::count(),
+                'total_events' => Event::count(),
+                'upcoming_events' => Event::where('status', 'upcoming')
+                    ->whereDate('date', '>=', now()->format('Y-m-d'))
+                    ->count(),
+            ];
+        }
 
         $recentEvents = Event::with(['venue', 'artists', 'owner'])
             ->orderBy('created_at', 'desc')
@@ -249,7 +268,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        return view('dashboard.admin', compact('stats', 'recentEvents', 'recentUsers'));
+        return view('dashboard.admin', compact('stats', 'recentEvents', 'recentUsers', 'statsEnabled'));
     }
 
     /**
@@ -258,21 +277,29 @@ class DashboardController extends Controller
     public function userDashboard()
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return redirect()->route('login');
         }
-        
+
         // Get user's favorite events
-        $favoriteEvents = Event::whereHas('favoritedBy', function($query) use ($user) {
+        $favoriteEvents = Event::whereHas('favoritedBy', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })
-        ->with(['venue', 'artists', 'owner'])
-        ->orderBy('date', 'asc')
-        ->get();
+            ->with(['venue', 'artists', 'owner'])
+            ->orderBy('date', 'asc')
+            ->get();
+
+        // Get user's favorite artists
+        $favoriteArtists = Artist::whereHas('favoritedBy', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+            ->with(['user', 'ratings'])
+            ->orderBy('stage_name', 'asc')
+            ->get();
 
         // Get upcoming events near user (sample - would need location logic)
-        $upcomingEvents = Event::where('status', 'scheduled')
+        $upcomingEvents = Event::where('status', 'upcoming')
             ->whereDate('date', '>=', now()->format('Y-m-d'))
             ->with(['venue', 'artists', 'owner'])
             ->orderBy('date', 'asc')
@@ -286,12 +313,31 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $stats = [
-            'favorite_events' => $favoriteEvents->count(),
-            'upcoming_events' => $upcomingEvents->count(),
-            'ratings_given' => $userRatings->count(),
-        ];
+        // Get user's owned venues with pagination
+        $userVenues = Venue::where('user_id', $user->id)
+            ->withCount('events')
+            ->with(['events' => function ($query) {
+                $query->where('status', 'upcoming')
+                    ->whereDate('date', '>=', now()->format('Y-m-d'))
+                    ->orderBy('date', 'asc')
+                    ->limit(3);
+            }])
+            ->orderBy('created_at', 'desc')
+            ->paginate(6);
 
-        return view('dashboard.user', compact('favoriteEvents', 'upcomingEvents', 'userRatings', 'stats'));
+        $statsEnabled = config('features.dashboard_stats', true);
+        $stats = [];
+
+        if ($statsEnabled) {
+            $stats = [
+                'favorite_events' => $favoriteEvents->count(),
+                'favorite_artists' => $favoriteArtists->count(),
+                'upcoming_events' => $upcomingEvents->count(),
+                'ratings_given' => $userRatings->count(),
+                'venues_owned' => Venue::where('user_id', $user->id)->count(),
+            ];
+        }
+
+        return view('dashboard.user', compact('favoriteEvents', 'favoriteArtists', 'upcomingEvents', 'userRatings', 'userVenues', 'stats', 'statsEnabled'));
     }
 }

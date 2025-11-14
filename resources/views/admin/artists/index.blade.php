@@ -20,115 +20,160 @@
 
     <!-- Search and Filters -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" class="flex flex-wrap gap-4">
+        <form method="GET" id="ajax-search-form" class="flex flex-wrap gap-4">
             <div class="flex-1 min-w-64">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Search artists..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
             </div>
             <div>
-                <select name="genre" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                    <option value="">All Genres</option>
-                    <option value="rock" {{ request('genre') == 'rock' ? 'selected' : '' }}>Rock</option>
-                    <option value="pop" {{ request('genre') == 'pop' ? 'selected' : '' }}>Pop</option>
-                    <option value="jazz" {{ request('genre') == 'jazz' ? 'selected' : '' }}>Jazz</option>
-                    <option value="classical" {{ request('genre') == 'classical' ? 'selected' : '' }}>Classical</option>
-                    <option value="electronic" {{ request('genre') == 'electronic' ? 'selected' : '' }}>Electronic</option>
-                    <option value="hip-hop" {{ request('genre') == 'hip-hop' ? 'selected' : '' }}>Hip-Hop</option>
-                    <option value="country" {{ request('genre') == 'country' ? 'selected' : '' }}>Country</option>
-                    <option value="other" {{ request('genre') == 'other' ? 'selected' : '' }}>Other</option>
-                </select>
+                <x-genre-select 
+                    name="genre" 
+                    id="genre-filter"
+                    :value="request('genre')" 
+                    placeholder="All Genres"
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    use-names
+                />
             </div>
-            <button type="submit" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200">
-                Filter
-            </button>
-            <a href="{{ route('admin.artists.index') }}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200">
-                Clear
-            </a>
+            <div class="flex gap-2">
+                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z"/>
+                    </svg>
+                    Search
+                </button>
+                @if(request()->hasAny(['search', 'genre']))
+                <a href="#" onclick="event.preventDefault(); if(window.ajaxSearchInstance) { window.ajaxSearchInstance.clearFilters(); } else { window.location.href = '{{ route('admin.artists.index') }}'; }" class="text-purple-600 hover:text-purple-800 px-4 py-2 flex items-center font-medium transition-colors duration-200">
+                    Clear Filters
+                </a>
+                @endif
+            </div>
         </form>
     </div>
 
     <!-- Artists Table -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artist</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Genre</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bio</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($artists as $artist)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 h-12 w-12">
-                                    @if($artist->profile_picture)
-                                        <img class="h-12 w-12 rounded-full object-cover" src="{{ Storage::url($artist->profile_picture) }}" alt="{{ $artist->stage_name }}">
-                                    @else
-                                        <div class="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center">
-                                            <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900">{{ $artist->stage_name }}</div>
-                                    <div class="text-sm text-gray-500">{{ $artist->real_name }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                                {{ ucfirst($artist->genre) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm text-gray-900">{{ Str::limit($artist->bio, 50) }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $artist->user->name ?? 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ $artist->created_at->format('M d, Y') }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('admin.artists.show', $artist) }}" class="text-purple-600 hover:text-purple-900">View</a>
-                                <a href="{{ route('admin.artists.edit', $artist) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                <form method="POST" action="{{ route('admin.artists.destroy', $artist) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this artist?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">No artists found</h3>
-                            <p class="mt-1 text-sm text-gray-500">Get started by creating a new artist.</p>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        
-        @if($artists->hasPages())
-        <div class="px-6 py-3 border-t border-gray-200">
-            {{ $artists->links() }}
-        </div>
-        @endif
+    <div id="ajax-results">
+        @include('admin.artists._results', ['artists' => $artists])
     </div>
 </div>
+
+@push('scripts')
+<script>
+// AjaxSearch class implementation
+class AjaxSearch {
+    constructor(config = {}) {
+        this.form = document.getElementById('ajax-search-form');
+        this.resultsContainer = document.getElementById('ajax-results');
+        this.config = {
+            debounceDelay: 300,
+            ...config
+        };
+        
+        if (this.form) {
+            this.init();
+        }
+    }
+    
+    init() {
+        // Handle form submission
+        this.form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.performSearch();
+        });
+        
+        // Handle input changes with debouncing
+        const inputs = this.form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('change', () => {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.performSearch();
+                }, this.config.debounceDelay);
+            });
+        });
+    }
+    
+    async performSearch() {
+        if (!this.form) return;
+        
+        const formData = new FormData(this.form);
+        const params = new URLSearchParams();
+        
+        for (let [key, value] of formData.entries()) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+        
+        try {
+            const response = await fetch(`${this.form.action}?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            });
+            
+            if (response.ok) {
+                const html = await response.text();
+                if (this.resultsContainer) {
+                    this.resultsContainer.innerHTML = html;
+                }
+            } else {
+                this.showError('Search failed. Please try again.');
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            this.showError('Search failed. Please try again.');
+        }
+    }
+    
+    clearFilters() {
+        // Reset all form inputs
+        const inputs = this.form.querySelectorAll('input[type="text"], input[type="search"], input[type="date"]');
+        inputs.forEach(input => input.value = '');
+        
+        const selects = this.form.querySelectorAll('select');
+        selects.forEach(select => {
+            select.selectedIndex = 0;
+            // Trigger change event to ensure any custom components are updated
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        
+        // Clear any hidden inputs that might store values
+        const hiddenInputs = this.form.querySelectorAll('input[type="hidden"]');
+        hiddenInputs.forEach(input => {
+            if (input.name === 'genre' || input.name.includes('genre')) {
+                input.value = '';
+            }
+        });
+        
+        // Perform search to show all results
+        this.performSearch();
+    }
+    
+    showError(message) {
+        if (this.resultsContainer) {
+            this.resultsContainer.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                    <p class="text-red-600">${message}</p>
+                </div>
+            `;
+        }
+    }
+    
+    static init(config = {}) {
+        return new AjaxSearch(config);
+    }
+}
+
+// Initialize when DOM is ready
+let ajaxSearchInstance;
+document.addEventListener('DOMContentLoaded', function() {
+    ajaxSearchInstance = AjaxSearch.init();
+    // Make it globally accessible
+    window.ajaxSearchInstance = ajaxSearchInstance;
+});
+</script>
+@endpush
 @endsection
 

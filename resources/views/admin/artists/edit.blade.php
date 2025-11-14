@@ -11,11 +11,36 @@
             <p class="text-gray-600">Update artist information and details</p>
         </div>
 
+        @if(session('success'))
+            <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if($errors->has('general'))
+            <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {{ $errors->first('general') }}
+            </div>
+        @endif
+
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <form method="POST" action="{{ route('admin.artists.update', $artist) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 
+                <!-- Profile Picture -->
+                <div class="mb-6">
+                    <x-profile-picture-upload 
+                        name="profile_picture"
+                        id="profile_picture"
+                        :currentImage="$artist->profile_picture"
+                        showCurrent="true"
+                        maxSize="10MB"
+                        class="w-full"
+                        previewSize="h-32 w-32"
+                    />
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Stage Name -->
                     <div>
@@ -50,9 +75,32 @@
                     <!-- Genre -->
                     <div>
                         <label for="genre" class="block text-sm font-medium text-gray-700 mb-2">Genre *</label>
-                        <input type="text" id="genre" name="genre" value="{{ old('genre', $artist->genre) }}" required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('genre') border-red-500 @enderror">
+                        <x-genre-select 
+                            id="genre" 
+                            name="genre" 
+                            :value="old('genre', $artist->genre)" 
+                            required 
+                            use-names
+                            class="w-full {{ $errors->has('genre') ? 'border-red-500' : '' }}" 
+                        />
                         @error('genre')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Contact Email -->
+                    <div class="md:col-span-2">
+                        <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-2">
+                            Contact Email
+                            @if(!$artist->user_id)
+                                <span class="text-red-500">*</span>
+                                <span class="text-gray-500 text-xs">(required for unclaimed artists)</span>
+                            @endif
+                        </label>
+                        <input type="email" id="contact_email" name="contact_email" value="{{ old('contact_email', $artist->contact_email) }}"
+                               @if(!$artist->user_id) required @endif
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('contact_email') border-red-500 @enderror">
+                        @error('contact_email')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -95,31 +143,6 @@
                         @error('twitter')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
-
-                    <!-- Current Profile Picture -->
-                    @if($artist->profile_picture)
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Current Profile Picture</label>
-                            <div class="flex items-center space-x-4">
-                                <img src="{{ Storage::url($artist->profile_picture) }}" alt="Current Profile Picture" class="h-32 w-32 object-cover rounded-lg">
-                                <div>
-                                    <p class="text-sm text-gray-600">Current profile picture</p>
-                                    <p class="text-xs text-gray-500">Upload a new image below to replace it</p>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    <!-- Profile Picture -->
-                    <div class="md:col-span-2">
-                        <label for="profile_picture" class="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
-                        <input type="file" id="profile_picture" name="profile_picture" accept="image/*"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('profile_picture') border-red-500 @enderror">
-                        @error('profile_picture')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                        <p class="mt-1 text-sm text-gray-500">Leave empty to keep current picture</p>
                     </div>
                 </div>
 

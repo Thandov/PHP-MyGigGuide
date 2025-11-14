@@ -14,13 +14,13 @@
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            <span>Create Event</span>
+            <span>List an Event</span>
         </a>
     </div>
 
     <!-- Search and Filters -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" class="flex flex-wrap gap-4">
+        <form method="GET" id="ajax-search-form" class="flex flex-wrap gap-4">
             <div class="flex-1 min-w-64">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Search events..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
             </div>
@@ -33,16 +33,16 @@
                     <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                 </select>
             </div>
-            <button type="submit" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200">
-                Filter
-            </button>
-            <a href="{{ route('admin.events.index') }}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200">
-                Clear
+            @if(request()->hasAny(['search', 'status']))
+            <a href="#" onclick="event.preventDefault(); ajaxSearchInstance.clearFilters();" class="text-purple-600 hover:text-purple-800 px-4 py-2 flex items-center font-medium transition-colors duration-200">
+                Clear Filters
             </a>
+            @endif
         </form>
     </div>
 
     <!-- Events Table -->
+    <div id="ajax-results">
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -80,7 +80,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ $event->date->format('M d, Y') }}</div>
-                            <div class="text-sm text-gray-500">{{ $event->time }}</div>
+                            <div class="text-sm text-gray-500">{{ $event->time ? $event->time->format('H:i') : 'Not set' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ $event->venue->name ?? 'N/A' }}</div>
@@ -132,6 +132,17 @@
         </div>
         @endif
     </div>
+    </div>
 </div>
+
+@push('scripts')
+<script src="{{ asset('js/ajax-search.js') }}"></script>
+<script>
+    let ajaxSearchInstance;
+    document.addEventListener('DOMContentLoaded', function() {
+        ajaxSearchInstance = AjaxSearch.init();
+    });
+</script>
+@endpush
 @endsection
 

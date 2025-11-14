@@ -8,7 +8,7 @@
     <div class="max-w-4xl mx-auto">
         <div class="mb-6">
             <h1 class="text-2xl font-bold text-gray-900">Edit Venue: {{ $venue->name }}</h1>
-            <p class="text-gray-600">Update venue information and details</p>
+            <p class="text-gray-600">Update venue information and det7667ails</p>
         </div>
 
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -56,6 +56,39 @@
                         <input type="text" id="city" name="city" value="{{ old('city', $venue->city) }}" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('city') border-red-500 @enderror">
                         @error('city')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Contact Email -->
+                    <div>
+                        <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                        <input type="email" id="contact_email" name="contact_email" value="{{ old('contact_email', $venue->contact_email) }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('contact_email') border-red-500 @enderror">
+                        @error('contact_email')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Owner Email -->
+                    <div>
+                        <label for="owner_email" class="block text-sm font-medium text-gray-700 mb-2">Venue Owner Email</label>
+                        @if($venue->user)
+                            <input
+                                type="email"
+                                id="owner_email"
+                                name="owner_email"
+                                value="{{ old('owner_email', $venue->user->email) }}"
+                                @unless(auth()->check() && auth()->user()->hasRole('superuser')) disabled @endunless
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('owner_email') border-red-500 @enderror {{ auth()->check() && auth()->user()->hasRole('superuser') ? '' : 'bg-gray-100 text-gray-500 cursor-not-allowed' }}"
+                            >
+                            @unless(auth()->check() && auth()->user()->hasRole('superuser'))
+                                <p class="mt-1 text-xs text-gray-500">Only superusers can update the owner email.</p>
+                            @endunless
+                        @else
+                            <p class="text-sm text-gray-500">No owner account linked to this venue.</p>
+                        @endif
+                        @error('owner_email')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -120,7 +153,7 @@
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Current Gallery</label>
                             <div class="grid grid-cols-4 gap-4">
-                                @foreach(json_decode($venue->venue_gallery, true) as $image)
+                                @foreach($venue->venue_gallery as $image)
                                     <img src="{{ Storage::url($image) }}" alt="Gallery Image" class="h-24 w-full object-cover rounded-lg">
                                 @endforeach
                             </div>
@@ -153,10 +186,17 @@
     </div>
 </div>
 
+@push('head')
+<script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.api_key', 'AIzaSyBvOkBw3cLWlIqFIBi5DswhQcKf3eJvA8Y') }}&libraries=places&callback=initGoogleMaps" async defer></script>
+@endpush
+
 @push('scripts')
 <script>
 let autocomplete;
-let map;
+
+function initGoogleMaps() {
+    initAutocomplete();
+}
 
 function initAutocomplete() {
     autocomplete = new google.maps.places.Autocomplete(
@@ -175,6 +215,16 @@ function initAutocomplete() {
         document.getElementById('address').value = address;
         document.getElementById('latitude').value = lat;
         document.getElementById('longitude').value = lng;
+        
+        // Also try to extract city from address components
+        if (place.address_components) {
+            for (let component of place.address_components) {
+                if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+                    document.getElementById('city').value = component.long_name;
+                    break;
+                }
+            }
+        }
         return true;
     };
 
@@ -198,19 +248,6 @@ function initAutocomplete() {
     addressInput.addEventListener('blur', geocodeNow);
     addressInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); geocodeNow(); }});
 }
-
-function loadGoogleMaps() {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&callback=initAutocomplete`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-}
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    loadGoogleMaps();
-});
 </script>
 @endpush
 @endsection

@@ -154,26 +154,20 @@
                         @enderror
                     </div>
 
-                    <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
-                            Category
+                    <div class="md:col-span-2">
+                        <label for="categories" class="block text-sm font-medium text-gray-700 mb-2">
+                            Categories
                         </label>
-                        <select
-                            id="category"
-                            name="category"
-                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('category') border-red-300 @enderror"
-                        >
-                            <option value="">Select category</option>
-                            <option value="concert" {{ old('category', $event->category) == 'concert' ? 'selected' : '' }}>Concert</option>
-                            <option value="festival" {{ old('category', $event->category) == 'festival' ? 'selected' : '' }}>Festival</option>
-                            <option value="club" {{ old('category', $event->category) == 'club' ? 'selected' : '' }}>Club Night</option>
-                            <option value="theater" {{ old('category', $event->category) == 'theater' ? 'selected' : '' }}>Theater</option>
-                            <option value="comedy" {{ old('category', $event->category) == 'comedy' ? 'selected' : '' }}>Comedy</option>
-                            <option value="other" {{ old('category', $event->category) == 'other' ? 'selected' : '' }}>Other</option>
-                        </select>
-                        @error('category')
+                        <x-category-combobox 
+                            name="categories" 
+                            :values="old('categories', $event->categories->pluck('id')->toArray())"
+                            placeholder="Select event categories (e.g., Concert, Festival)..."
+                            class="@error('categories') border-red-300 @enderror"
+                        />
+                        @error('categories')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        <p class="mt-1 text-sm text-gray-500">Choose one or more categories that best describe your event</p>
                     </div>
                 </div>
             </div>
@@ -186,19 +180,15 @@
                     <label for="venue_id" class="block text-sm font-medium text-gray-700 mb-2">
                         Select Venue *
                     </label>
-                    <select
-                        id="venue_id"
-                        name="venue_id"
+                    <x-venue-selector 
+                        name="venue_id" 
+                        :selectedVenueId="old('venue_id', $event->venue_id)"
+                        placeholder="Choose a venue for your event..."
+                        userRole="organiser"
+                        :organiserId="auth()->user()->id"
                         required
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('venue_id') border-red-300 @enderror"
-                    >
-                        <option value="">Choose a venue</option>
-                        @foreach($venues as $venue)
-                            <option value="{{ $venue->id }}" {{ old('venue_id', $event->venue_id) == $venue->id ? 'selected' : '' }}>
-                                {{ $venue->name }} - {{ $venue->address }}
-                            </option>
-                        @endforeach
-                    </select>
+                        :hasError="$errors->has('venue_id')"
+                    />
                     @error('venue_id')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -211,34 +201,13 @@
             <!-- Artists Selection -->
             <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
                 <h2 class="text-xl font-bold text-gray-900 mb-6">Artists</h2>
-                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Select Artists
-                    </label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach($artists as $artist)
-                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    name="artists[]"
-                                    value="{{ $artist->id }}"
-                                    {{ in_array($artist->id, old('artists', $event->artists->pluck('id')->toArray())) ? 'checked' : '' }}
-                                    class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                />
-                                <div class="ml-3">
-                                    <div class="text-sm font-medium text-gray-900">{{ $artist->stage_name }}</div>
-                                    <div class="text-sm text-gray-500">{{ $artist->genre }}</div>
-                                </div>
-                            </label>
-                        @endforeach
-                    </div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Booked Artists</label>
+                    <x-artist-combobox name="artists" id="artists" :values="old('artists', $event->artists->pluck('id')->toArray())" class="w-full" />
                     @error('artists')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                    <p class="mt-2 text-sm text-gray-500">
-                        Don't see an artist? <a href="{{ route('artists.create') }}" class="text-purple-600 hover:text-purple-700">Add a new artist</a>
-                    </p>
+                    <p class="mt-2 text-sm text-gray-500">Don't see an artist? <a href="{{ route('artists.create') }}" class="text-purple-600 hover:text-purple-700">Add a new artist</a></p>
                 </div>
             </div>
 
@@ -262,26 +231,34 @@
                         </div>
                     @endif
 
-                    <!-- Poster Upload -->
+                    <!-- Poster Upload (compact if poster exists) -->
                     <div>
                         <label for="poster" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ $event->poster ? 'New Event Poster' : 'Event Poster' }}
+                            {{ $event->poster ? 'Replace Poster' : 'Event Poster' }}
                         </label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
-                            <div class="space-y-1 text-center">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                                <div class="flex text-sm text-gray-600">
-                                    <label for="poster" class="relative cursor-pointer bg-white rounded-md font-medium text-purple-600 hover:text-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500">
-                                        <span>Upload a poster</span>
-                                        <input id="poster" name="poster" type="file" class="sr-only" accept="image/*" onchange="previewImage(this, 'poster-preview')">
-                                    </label>
-                                    <p class="pl-1">or drag and drop</p>
+                        @if($event->poster)
+                            <label class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-gray-50 cursor-pointer">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M4 12l4-4a3 3 0 014 0l4 4m-6-2v10"/></svg>
+                                <span>Choose new poster</span>
+                                <input id="poster" name="poster" type="file" class="sr-only" accept="image/*" onchange="previewImage(this, 'poster-preview')">
+                            </label>
+                        @else
+                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="flex text-sm text-gray-600">
+                                        <label for="poster" class="relative cursor-pointer bg-white rounded-md font-medium text-purple-600 hover:text-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500">
+                                            <span>Upload a poster</span>
+                                            <input id="poster" name="poster" type="file" class="sr-only" accept="image/*" onchange="previewImage(this, 'poster-preview')">
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                                 </div>
-                                <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                             </div>
-                        </div>
+                        @endif
                         <div id="poster-preview" class="mt-4 hidden">
                             <img class="h-32 w-auto mx-auto rounded-lg" alt="Poster preview">
                         </div>
@@ -290,26 +267,50 @@
                         @enderror
                     </div>
 
-                    <!-- Gallery Upload -->
-                    <div>
-                        <label for="gallery" class="block text-sm font-medium text-gray-700 mb-2">
-                            Event Gallery
-                        </label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
-                            <div class="space-y-1 text-center">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                                <div class="flex text-sm text-gray-600">
-                                    <label for="gallery" class="relative cursor-pointer bg-white rounded-md font-medium text-purple-600 hover:text-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500">
-                                        <span>Upload gallery images</span>
-                                        <input id="gallery" name="gallery[]" type="file" class="sr-only" accept="image/*" multiple onchange="previewGallery(this, 'gallery-preview')">
-                                    </label>
-                                    <p class="pl-1">or drag and drop</p>
-                                </div>
-                                <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
+                    <!-- Current Gallery (if any) -->
+                    @php
+                        $galleryImages = is_string($event->gallery) ? json_decode($event->gallery, true) : ($event->gallery ?? []);
+                        if (!is_array($galleryImages)) { $galleryImages = []; }
+                    @endphp
+                    @if(count($galleryImages) > 0)
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Current Gallery</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                @foreach($galleryImages as $img)
+                                    <img src="{{ Storage::url($img) }}" alt="Gallery image" class="h-24 w-full object-cover rounded-lg border border-gray-200">
+                                @endforeach
                             </div>
                         </div>
+                    @endif
+
+                    <!-- Gallery Upload (compact if existing gallery) -->
+                    <div>
+                        <label for="gallery" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ count($galleryImages) > 0 ? 'Add More Images' : 'Event Gallery' }}
+                        </label>
+                        @if(count($galleryImages) > 0)
+                            <label class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-gray-50 cursor-pointer">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M4 12l4-4a3 3 0 014 0l4 4m-6-2v10"/></svg>
+                                <span>Upload images</span>
+                                <input id="gallery" name="gallery[]" type="file" class="sr-only" accept="image/*" multiple onchange="previewGallery(this, 'gallery-preview')">
+                            </label>
+                        @else
+                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="flex text-sm text-gray-600">
+                                        <label for="gallery" class="relative cursor-pointer bg-white rounded-md font-medium text-purple-600 hover:text-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500">
+                                            <span>Upload gallery images</span>
+                                            <input id="gallery" name="gallery[]" type="file" class="sr-only" accept="image/*" multiple onchange="previewGallery(this, 'gallery-preview')">
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
+                                </div>
+                            </div>
+                        @endif
                         <div id="gallery-preview" class="mt-4 hidden grid grid-cols-2 md:grid-cols-4 gap-4">
                             <!-- Gallery previews will be inserted here -->
                         </div>

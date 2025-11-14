@@ -30,6 +30,7 @@
     <div class="mb-8">
       <x-google-map 
         :events="$events" 
+        :categories-list="$categories"
         height="600px" 
         :show-legend="true" 
         :compact="false"

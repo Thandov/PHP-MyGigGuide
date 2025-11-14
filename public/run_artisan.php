@@ -1,11 +1,12 @@
 <?php
+
 // TEMPORARY deployment helper. Delete after running.
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 $root = dirname(__DIR__);
-require $root . '/vendor/autoload.php';
-$app = require_once $root . '/bootstrap/app.php';
+require $root.'/vendor/autoload.php';
+$app = require_once $root.'/bootstrap/app.php';
 
 use Illuminate\Contracts\Console\Kernel;
 
@@ -19,15 +20,15 @@ function run($cmd)
         echo Artisan::output();
         echo "Exit: $code\n";
     } catch (Throwable $e) {
-        echo 'ERROR: ' . $e->getMessage() . "\n";
+        echo 'ERROR: '.$e->getMessage()."\n";
         echo nl2br($e->getTraceAsString());
     }
-    echo "</pre><hr>";
+    echo '</pre><hr>';
 }
 
 // Ensure storage permissions
-@chmod($root . '/storage', 0755);
-@chmod($root . '/bootstrap/cache', 0755);
+@chmod($root.'/storage', 0755);
+@chmod($root.'/bootstrap/cache', 0755);
 
 if (empty(env('APP_KEY'))) {
     run('key:generate');

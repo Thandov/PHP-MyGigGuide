@@ -21,21 +21,43 @@
         <div class="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-300"></div>
         
         <!-- Favorite Button -->
-        <button class="absolute top-3 right-3 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all duration-200 backdrop-blur-sm z-10" onclick="event.preventDefault(); event.stopPropagation();">
-            <svg class="h-5 w-5 text-white hover:text-red-400 transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        @auth
+        @php
+            $isFavorited = false;
+            if (auth()->user()) {
+                $isFavorited = auth()->user()->favoriteVenues()->where('venue_id', $venue->id)->exists();
+            }
+        @endphp
+        <button 
+            class="absolute top-3 right-3 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all duration-200 backdrop-blur-sm z-10 favorite-toggle {{ $isFavorited ? 'favorited' : '' }}" 
+            data-venue-id="{{ $venue->id }}"
+            onclick="event.preventDefault(); event.stopPropagation(); toggleVenueFavorite(this)"
+        >
+            <svg class="h-5 w-5 text-white {{ $isFavorited ? 'fill-red-500' : 'fill-none' }} transition-colors duration-200" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
         </button>
+        @else
+        <button 
+            class="absolute top-3 right-3 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all duration-200 backdrop-blur-sm z-10" 
+            onclick="event.preventDefault(); event.stopPropagation(); window.location.href='/login'"
+            title="Login to add favorites"
+        >
+            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+        </button>
+        @endauth
         
         <!-- Venue Type Badge -->
         <div class="absolute top-3 left-3">
-            <span class="px-2 py-1 text-xs font-medium bg-blue-500/90 text-white rounded-full backdrop-blur-sm">
+            <span class="px-2 py-1 text-xs font-medium bg-purple-500/90 text-white rounded-full backdrop-blur-sm">
                 Venue
             </span>
         </div>
         
-        <!-- Venue Name at Bottom with Gradient Background -->
-        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+        <!-- Venue Name at Bottom with Gradient Background (Hidden on hover) -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent group-hover:opacity-0 transition-opacity duration-300">
             <div class="text-white">
                 <h3 class="font-bold text-lg mb-1 line-clamp-1">{{ $venue->name }}</h3>
                 <p class="text-sm opacity-90">{{ $venue->address }}</p>

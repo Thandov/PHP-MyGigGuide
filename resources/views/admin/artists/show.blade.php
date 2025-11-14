@@ -139,6 +139,36 @@
                                 <p class="text-sm text-gray-500">Username: {{ $artist->user->username }}</p>
                             </div>
                         </div>
+                        @if(auth()->check() && auth()->user()->hasRole('superuser'))
+                            <form method="POST" action="{{ route('admin.users.update-email', $artist->user) }}" class="mt-4 space-y-3">
+                                @csrf
+                                @method('PATCH')
+                                <div>
+                                    <label for="email" class="block text-sm font-medium text-gray-700">Update Email Address</label>
+                                    <div class="mt-1 flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0">
+                                        <div class="flex-1">
+                                            <input
+                                                id="email"
+                                                name="email"
+                                                type="email"
+                                                required
+                                                value="{{ old('email', $artist->user->email) }}"
+                                                class="input"
+                                            >
+                                            @error('email')
+                                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Email</button>
+                                    </div>
+                                </div>
+                                <label class="inline-flex items-center space-x-2 text-sm text-gray-600">
+                                    <input type="checkbox" name="sync_related" value="1" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500" {{ old('sync_related') ? 'checked' : '' }}>
+                                    <span>Also update linked artist/organiser contact emails</span>
+                                </label>
+                                <p class="text-xs text-gray-500">Saving will reset email verification for this user until they confirm the new address.</p>
+                            </form>
+                        @endif
                     @else
                         <p class="text-gray-500">No user account linked</p>
                     @endif
@@ -151,6 +181,16 @@
                         <a href="{{ route('artists.show', $artist) }}" target="_blank" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200">
                             View Public Profile
                         </a>
+                        <form action="{{ route('features.checkout') }}" method="GET" class="flex items-center space-x-2">
+                            <input type="hidden" name="featureable_type" value="artist" />
+                            <input type="hidden" name="featureable_id" value="{{ $artist->id }}" />
+                            <select name="feature_id" class="input">
+                                @foreach(\App\Models\PaidFeature::where('applies_to','artist')->where('is_active', true)->get() as $feature)
+                                    <option value="{{ $feature->id }}">Boost: {{ $feature->name }} ({{ $feature->currency }} {{ number_format($feature->price_cents/100, 2) }})</option>
+                                @endforeach
+                            </select>
+                            <button class="btn btn-primary">Boost Artist</button>
+                        </form>
                         
                         <form method="POST" action="{{ route('admin.artists.destroy', $artist) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this artist?')">
                             @csrf

@@ -6,53 +6,165 @@
 <div class="min-h-screen bg-gray-50">
     <!-- Hero Section -->
     <div class="relative h-96 md:h-[500px] overflow-hidden">
-        @if($venue->main_picture)
-            <img
-                src="{{ Storage::url($venue->main_picture) }}"
-                alt="{{ $venue->name }}"
-                class="w-full h-full object-cover"
-            >
-        @else
-            <div class="w-full h-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
-                <div class="text-center text-white">
-                    <svg class="w-24 h-24 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                    </svg>
-                    <h3 class="text-2xl font-bold">No Image Available</h3>
-                </div>
+        @php
+            // Use normalized $gallery provided by controller (array of paths)
+            $galleryImages = [];
+            if (isset($gallery) && is_array($gallery)) {
+                $galleryImages = array_values(array_filter($gallery, function($path) {
+                    return $path && !str_contains($path, '/tmp/php') && !str_contains($path, 'tmp.php');
+                }));
+            }
+
+            // Use the actual column name stored when uploading: main_picture
+            $mainImage = $venue->main_picture ?? ($galleryImages[0] ?? null);
+            if ($mainImage && (str_contains($mainImage, '/tmp/php') || str_contains($mainImage, 'tmp.php'))) {
+                $mainImage = null;
+            }
+        @endphp
+
+        @if(count($galleryImages) > 1)
+            <!-- Owl Carousel for multiple gallery images -->
+            <div class="owl-carousel owl-theme venue-hero-carousel w-full h-full">
+                @foreach($galleryImages as $index => $image)
+                    <div class="item relative w-full h-full">
+                        <img
+                            src="{{ Storage::url($image) }}"
+                            alt="{{ $venue->name }} - Image {{ $index + 1 }}"
+                            class="w-full h-full object-cover"
+                        >
+                        <div class="absolute inset-0 bg-black/40"></div>
+                    </div>
+                @endforeach
             </div>
+        @elseif($mainImage)
+            <!-- Single image background -->
+            <div class="relative w-full h-full">
+                <img
+                    src="{{ Storage::url($mainImage) }}"
+                    alt="{{ $venue->name }}"
+                    class="w-full h-full object-cover"
+                >
+                <div class="absolute inset-0 bg-black/40"></div>
+            </div>
+        @else
+            <!-- Fallback gradient background -->
+            <div class="w-full h-full bg-gradient-to-br from-purple-600 to-blue-600"></div>
         @endif
-        <div class="absolute inset-0 bg-black/40"></div>
         
-        <!-- Venue Info Overlay -->
-        <div class="absolute inset-0 flex items-end">
-            <div class="w-full p-6 md:p-8">
-                <div class="max-w-4xl mx-auto">
-                    <h1 class="text-4xl md:text-6xl font-bold text-white mb-4">
-                        {{ $venue->name }}
-                    </h1>
-                    <div class="flex flex-wrap items-center gap-4 text-white/90">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            <span>{{ $venue->address }}</span>
+        <!-- Custom Navigation Controls (only for carousel) -->
+        @if(count($galleryImages) > 1)
+        <div class="absolute inset-0 pointer-events-none">
+            <button class="owl-prev absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all pointer-events-auto">
+                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <button class="owl-next absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all pointer-events-auto">
+                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </button>
+            
+            <!-- Dots Container -->
+            <div class="owl-dots absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2"></div>
+        </div>
+        @endif
+
+        <style>
+            #hello {
+                z-index: 10 !important;
+                position: absolute !important;
+            }
+            
+            /* Prevent carousel animations from affecting overlay */
+            .venue-hero-carousel {
+                z-index: 1;
+            }
+            
+            .venue-hero-carousel .owl-item {
+                z-index: 1;
+            }
+            
+            /* Ensure overlay stays on top and doesn't inherit carousel animations */
+            #hello * {
+                animation: none !important;
+                transition: none !important;
+            }
+        </style>
+        
+        <!-- Breadcrumb -->
+        <div class="max-w-7xl mx-auto">
+            <x-hero-breadcrumb type="venue" :item="$venue" />
+        </div>
+        
+        <!-- Hero Content - Now positioned outside carousel to prevent fading -->
+        <div class="absolute inset-0 flex items-end pointer-events-none" id="hello">
+            <div class="w-full bg-gradient-to-t from-black/80 to-transparent p-6 md:p-8 pointer-events-auto">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex items-end justify-between">
+                        <div class="text-white">
+                            <h1 class="text-4xl md:text-6xl font-bold mb-2">{{ $venue->name }}</h1>
+                            <div class="flex items-center space-x-6 text-lg">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-sm font-semibold">★ {{ number_format($ratingAvg, 1) }}</span>
+                                @if($venue->address)
+                                <div class="flex items-center space-x-2">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span>{{ $venue->address }}</span>
+                                </div>
+                                @endif
+                                @if($venue->phone)
+                                <div class="flex items-center space-x-2">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h2.28a2 2 0 011.789 1.106l1.387 2.773a2 2 0 01-.217 2.18l-1.516 1.89a11.042 11.042 0 005.516 5.516l1.89-1.516a2 2 0 012.18-.217l2.773 1.387A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C9.163 23 1 14.837 1 5V4a2 2 0 012-2z"></path>
+                                    </svg>
+                                    <span>{{ $venue->phone }}</span>
+                                </div>
+                                @endif
+                                @if($venue->website)
+                                <div class="flex items-center space-x-2">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    <a href="{{ $venue->website }}" class="underline" target="_blank" rel="noopener">{{ $venue->website }}</a>
+                                </div>
+                                @endif
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                            <span>{{ number_format($venue->capacity) }} capacity</span>
+
+                        <div class="flex items-center space-x-4">
+                            @auth
+                            @php
+                                $isFavorited = false;
+                                if (auth()->user()) {
+                                    $isFavorited = auth()->user()->favoriteVenues()->where('venue_id', $venue->id)->exists();
+                                }
+                            @endphp
+                            <button 
+                                id="favorite-venue-btn" 
+                                data-venue-id="{{ $venue->id }}"
+                                class="favorite-toggle p-3 bg-white/20 hover:bg-white/30 rounded-full transition-all {{ $isFavorited ? 'favorited' : '' }}">
+                                <svg class="h-6 w-6 text-white {{ $isFavorited ? 'fill-red-500' : 'fill-none' }}" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                            </button>
+                            @else
+                            <button onclick="window.location.href='/login'" class="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-all" title="Login to add favorites">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                            </button>
+                            @endauth
+                            @auth
+                                @if(auth()->id() == $venue->owner_id)
+                                    <a href="{{ route('venues.edit', $venue) }}" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all">
+                                        Edit Venue
+                                    </a>
+                                @endif
+                            @endauth
                         </div>
-                        @if($venue->contact_phone)
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                            </svg>
-                            <span>{{ $venue->contact_phone }}</span>
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -60,7 +172,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto py-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column - Main Info -->
             <div class="lg:col-span-2">
@@ -75,11 +187,11 @@
                 @endif
 
                 <!-- Gallery -->
-                @if($venue->venue_gallery && count($venue->venue_gallery) > 0)
+                @if(!empty($gallery))
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">Gallery</h2>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach($venue->venue_gallery as $image)
+                        @foreach($gallery as $image)
                         <div class="aspect-square rounded-lg overflow-hidden">
                             <img
                                 src="{{ Storage::url($image) }}"
@@ -94,11 +206,11 @@
                 @endif
 
                 <!-- Upcoming Events -->
-                @if($venue->events->count() > 0)
+                @if(count($upcomingEvents) > 0)
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">Upcoming Events</h2>
                     <div class="space-y-4">
-                        @foreach($venue->events as $event)
+                        @foreach($upcomingEvents as $event)
                         <div class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
                             @if($event->poster)
                             <img
@@ -131,7 +243,12 @@
                 </div>
                 @else
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Upcoming Events</h2>
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Upcoming Events</h2>
+                        <a href="{{ route('events.create', ['venue_id' => $venue->id, 'return_to' => route('venues.show', $venue)]) }}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                            Create event
+                        </a>
+                    </div>
                     <div class="text-center py-8">
                         <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -200,6 +317,11 @@
                             <span class="font-medium">{{ number_format($venue->capacity) }} people</span>
                         </div>
                         
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Rating:</span>
+                            <span class="font-medium text-yellow-600">★ {{ number_format($ratingAvg, 1) }}</span>
+                        </div>
+                        
                         @if($venue->owner)
                         <div class="flex justify-between">
                             <span class="text-gray-500">Managed by:</span>
@@ -214,29 +336,114 @@
                     </div>
                 </div>
 
+                <!-- Social Sharing -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Share this venue</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <!-- Facebook -->
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(request()->url()) }}&quote={{ urlencode($venue->name . ' - ' . $venue->description) }}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                            Facebook
+                        </a>
+
+                        <!-- Twitter -->
+                        <a href="https://twitter.com/intent/tweet?url={{ urlencode(request()->url()) }}&text={{ urlencode($venue->name . ' - Check out this amazing venue!') }}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                            </svg>
+                            Twitter
+                        </a>
+
+                        <!-- WhatsApp -->
+                        <a href="https://wa.me/?text={{ urlencode($venue->name . ' - ' . request()->url()) }}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                            </svg>
+                            WhatsApp
+                        </a>
+
+                        <!-- LinkedIn -->
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode(request()->url()) }}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                            LinkedIn
+                        </a>
+
+                        <!-- Copy Link -->
+                        <button onclick="copyVenueLink()" 
+                                class="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Copy Link
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Rating Form -->
+                <x-rating-form :model="$venue" type="venue" />
+
                 <!-- Action Buttons -->
-                @auth
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <div class="space-y-3">
-                        @if($venue->owner_id === auth()->id())
-                        <a href="{{ route('venues.edit', $venue) }}" class="btn-secondary w-full">
-                            <div class="btn-content">
-                                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                                Edit Venue
-                            </div>
-                        </a>
-                        @endif
-                        
-                        <button class="btn-secondary w-full">
-                            <div class="btn-content">
-                                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        @auth
+                            @if($venue->owner_id === auth()->id())
+                            <a href="{{ route('venues.edit', $venue) }}" class="btn-secondary w-full">
+                                <div class="btn-content">
+                                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                    Edit Venue
+                                </div>
+                            </a>
+                            @endif
+                            
+                            @php
+                                $isFavorited = false;
+                                if (auth()->user()) {
+                                    $isFavorited = auth()->user()->favoriteVenues()->where('venue_id', $venue->id)->exists();
+                                }
+                            @endphp
+                            <button 
+                                id="venue-favorite-button"
+                                class="btn-secondary w-full favorite-toggle {{ $isFavorited ? 'favorited bg-red-50 border-red-200 text-red-700' : '' }}" 
+                                data-venue-id="{{ $venue->id }}"
+                                onclick="toggleVenueFavorite(this)"
+                            >
+                                <div class="btn-content">
+                                    <svg class="btn-icon {{ $isFavorited ? 'fill-red-500' : 'fill-none' }}" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                    </svg>
+                                    {{ $isFavorited ? 'Remove from Favorites' : 'Add to Favorites' }}
+                                </div>
+                            </button>
+                        @else
+                            <button 
+                                onclick="window.location.href='/login'" 
+                                title="Login to add favorites"
+                                class="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                            >
+                                <svg class="btn-icon mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                                 </svg>
-                                Add to Favorites
-                            </div>
-                        </button>
+                                Login to Add Favorites
+                            </button>
+                        @endauth
                         
                         <button class="btn-secondary w-full">
                             <div class="btn-content">
@@ -248,55 +455,282 @@
                         </button>
                     </div>
                 </div>
-                @endauth
             </div>
         </div>
     </div>
 </div>
 
+<!-- Auth Modal -->
+<x-auth-modal />
+
 <!-- Image Modal -->
-<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 items-center justify-center z-50 hidden">
-    <div class="max-w-4xl max-h-full p-4">
-        <img id="modalImage" src="" alt="" class="max-w-full max-h-full object-contain rounded-lg">
-        <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white hover:text-gray-300">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-2xl font-bold">
+            ×
         </button>
+        <img id="modalImage" src="" alt="Gallery image" class="max-w-full max-h-full object-contain rounded-lg">
     </div>
 </div>
 
-@endsection
-
-@push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Hero carousel functionality
+    const carouselContainer = document.getElementById('hero-carousel');
+    if (carouselContainer) {
+        const slides = carouselContainer.querySelectorAll('.hero-carousel-slide');
+        const prevButton = document.getElementById('prev-slide');
+        const nextButton = document.getElementById('next-slide');
+        const dots = document.querySelectorAll('.carousel-dot');
+        
+        let currentSlide = 0;
+        let autoSlideInterval;
+        
+        function showSlide(index) {
+            if (slides.length === 0) return;
+            
+            // Hide all slides
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                slide.style.opacity = '0';
+            });
+            
+            // Show current slide
+            const targetSlide = slides[index];
+            if (targetSlide) {
+                targetSlide.classList.add('active');
+                targetSlide.style.opacity = '1';
+            }
+            
+            // Update dots
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('bg-white', i === index);
+                dot.classList.toggle('bg-white/50', i !== index);
+            });
+            
+            currentSlide = index;
+        }
+        
+        function nextSlide() {
+            const nextIndex = (currentSlide + 1) % slides.length;
+            showSlide(nextIndex);
+        }
+        
+        function prevSlide() {
+            const prevIndex = currentSlide === 0 ? slides.length - 1 : currentSlide - 1;
+            showSlide(prevIndex);
+        }
+        
+        function autoSlide() {
+            if (slides.length > 1) {
+                autoSlideInterval = setInterval(nextSlide, 5000); // Change slide every 5 seconds
+            }
+        }
+        
+        function stopAutoSlide() {
+            if (autoSlideInterval) {
+                clearInterval(autoSlideInterval);
+                autoSlideInterval = null;
+            }
+        }
+        
+        // Event listeners
+        if (nextButton) nextButton.addEventListener('click', nextSlide);
+        if (prevButton) prevButton.addEventListener('click', prevSlide);
+        
+        // Dot navigation
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => showSlide(index));
+        });
+        
+        // Pause auto-slide on hover
+        if (carouselContainer) {
+            carouselContainer.addEventListener('mouseenter', stopAutoSlide);
+            carouselContainer.addEventListener('mouseleave', autoSlide);
+        }
+        
+        // Start auto-slide
+        autoSlide();
+        
+        // Initialize the first slide
+        showSlide(0);
+    }
+    
+    // For future, if we need to auto-favorite after auth
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('auth_just_logged_in') || urlParams.has('continue')) {
+        console.log('User returned from authentication', urlParams.get('continue') ?? '');
+        // Potentially auto-save favorite if intendedBy='action'Guard
+    }
+});
+</script>
+
+<style>
+/* Hero carousel styles */
+.hero-carousel-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.hero-carousel-slide.active {
+    opacity: 1;
+}
+
+.carousel-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Prevent FOUC (Flash of Unstyled Content) */
+.hero-carousel-slide:not(.active) {
+    opacity: 0;
+}
+
+.hero-carousel-slide.active {
+    opacity: 1;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Owl Carousel for venue hero
+    if (document.querySelector('.venue-hero-carousel')) {
+        $('.venue-hero-carousel').owlCarousel({
+            items: 1,
+            loop: true,
+            autoplay: true,
+            autoplayTimeout: 6000, // 6 seconds
+            autoplayHoverPause: true,
+            nav: true,
+            navText: ['<i class="fas fa-chevron-left"></i>', '<i class="fas fa-chevron-right"></i>'],
+            dots: true,
+            animateOut: 'fadeOut',
+            animateIn: 'fadeIn',
+            smartSpeed: 1000,
+            responsive: {
+                0: {
+                    items: 1
+                },
+                768: {
+                    items: 1
+                }
+            }
+        });
+    }
+});
+
+// Image modal functions
 function openImageModal(imageSrc) {
-    document.getElementById('modalImage').src = imageSrc;
     const modal = document.getElementById('imageModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+    const modalImage = document.getElementById('modalImage');
+    
+    if (modal && modalImage) {
+        modalImage.src = imageSrc;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
 }
 
 function closeImageModal() {
     const modal = document.getElementById('imageModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    document.body.style.overflow = 'auto';
+    
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto'; // Restore scrolling
+    }
 }
 
-// Close modal on escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
         closeImageModal();
     }
 });
 
-// Close modal on backdrop click
-document.getElementById('imageModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeImageModal();
+// Copy venue link function
+function copyVenueLink() {
+    const url = window.location.href;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+        // Use modern clipboard API
+        navigator.clipboard.writeText(url).then(function() {
+            showCopySuccess();
+        }).catch(function(err) {
+            fallbackCopyTextToClipboard(url);
+        });
+    } else {
+        // Fallback for older browsers
+        fallbackCopyTextToClipboard(url);
     }
-});
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess();
+        } else {
+            showCopyError();
+        }
+    } catch (err) {
+        showCopyError();
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess() {
+    // Create a temporary toast notification
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300';
+    toast.textContent = 'Link copied to clipboard!';
+    document.body.appendChild(toast);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
+function showCopyError() {
+    // Create a temporary error toast
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300';
+    toast.textContent = 'Failed to copy link. Please try again.';
+    document.body.appendChild(toast);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
 </script>
-@endpush
+
+@endsection

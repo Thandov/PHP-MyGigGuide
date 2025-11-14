@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
+use Illuminate\Console\Command;
 
 class UpdateUserFolders extends Command
 {
@@ -44,7 +44,7 @@ class UpdateUserFolders extends Command
                 $user->getOrCreateFolderSettings();
                 $this->line("\n✓ Updated user: {$user->username} ({$user->name})");
             } catch (\Exception $e) {
-                $this->error("\n✗ Failed to update user {$user->username}: " . $e->getMessage());
+                $this->error("\n✗ Failed to update user {$user->username}: ".$e->getMessage());
             }
             $bar->advance();
         }

@@ -16,6 +16,25 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     @stack('head')
+    <!-- Minimal fallback styles in case Vite assets are not built -->
+    <style>
+        .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem .9rem;border-radius:.5rem;border:1px solid #e5e7eb;background:#f9fafb;color:#111827;font-weight:500}
+        .btn:hover{background:#f3f4f6}
+        .btn-primary{background:#7c3aed;color:#fff;border-color:#7c3aed}
+        .btn-primary:hover{background:#6d28d9;border-color:#6d28d9}
+        .btn-sm{padding:.25rem .6rem;font-size:.875rem}
+        .input{width:100%;padding:.5rem .75rem;border:1px solid #e5e7eb;border-radius:.5rem}
+        .alert{padding:.5rem .75rem;border-radius:.5rem}
+        .alert-success{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+        .alert-danger{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+        .nav-item{display:flex;align-items:center;gap:.6rem;padding:.6rem .75rem;border-radius:.5rem;color:#374151}
+        .nav-item:hover{background:#f3f4f6;color:#111827}
+        .nav-item-active{background:#ede9fe;color:#5b21b6}
+        table{width:100%;border-collapse:separate;border-spacing:0}
+        thead th{font-size:.875rem;color:#6b7280;border-bottom:1px solid #e5e7eb}
+        tbody td{font-size:.9375rem;color:#111827}
+        tr.border-t td{border-top:1px solid #e5e7eb}
+    </style>
 </head>
 <body class="font-sans antialiased bg-gray-50">
     <div id="app" x-data="{ sidebarOpen: false }">
@@ -79,6 +98,56 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                         Organisers
+                    </a>
+
+                    <a href="{{ route('admin.paid-features.index') }}" 
+                       class="nav-item {{ request()->routeIs('admin.paid-features.*') ? 'nav-item-active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0-6a9 9 0 100 18 9 9 0 000-18z" />
+                        </svg>
+                        Paid Features
+                    </a>
+                    <!-- Add genre management -->
+                    <a href="{{ route('admin.genres.index') }}" 
+                       class="nav-item {{ request()->routeIs('admin.genres.*') ? 'nav-item-active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9 2.5 2.5 0 000-5z" />
+                        </svg>
+                        Genres
+                    </a>
+                    <!-- Categories Management -->
+                    <a href="{{ route('admin.categories.index') }}" 
+                       class="nav-item {{ request()->routeIs('admin.categories.*') ? 'nav-item-active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Categories
+                    </a>
+                    <!-- Unclaimed Artists -->
+                    <a href="{{ route('admin.unclaimed-artists.index') }}" 
+                       class="nav-item {{ request()->routeIs('admin.unclaimed-artists.*') ? 'nav-item-active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        Unclaimed Artists
+                    </a>
+                    <!-- Artist Claim Disputes -->
+                    @php
+                        $disputeCount = \App\Models\Artist::where(function($q) {
+                            $q->where('claim_status', 'pending')
+                              ->orWhere('claim_status', 'disputed')
+                              ->orWhere('dispute_raised', true);
+                        })->whereNotNull('pending_claim_user_id')->count();
+                    @endphp
+                    <a href="{{ route('admin.artist-disputes.index') }}" 
+                       class="nav-item {{ request()->routeIs('admin.artist-disputes.*') ? 'nav-item-active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Disputes
+                        @if($disputeCount > 0)
+                            <span class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">{{ $disputeCount }}</span>
+                        @endif
                     </a>
                 </div>
             </nav>
@@ -147,27 +216,45 @@
             <!-- Page Content -->
             <main class="p-4 sm:p-6 lg:p-8">
                 @if(session('success'))
-                    <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 alert-success" 
+                         x-data="{ show: true }" 
+                         x-show="show" 
+                         x-transition
+                         x-init="setTimeout(() => show = false, 5000)">
                         <div class="flex">
                             <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <div class="ml-3">
+                            <div class="ml-3 flex-1">
                                 <p class="text-sm text-green-800">{{ session('success') }}</p>
                             </div>
+                            <button @click="show = false" class="ml-4 text-green-400 hover:text-green-600">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 @endif
 
                 @if(session('error'))
-                    <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4" 
+                         x-data="{ show: true }" 
+                         x-show="show" 
+                         x-transition
+                         x-init="setTimeout(() => show = false, 7000)">
                         <div class="flex">
                             <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <div class="ml-3">
+                            <div class="ml-3 flex-1">
                                 <p class="text-sm text-red-800">{{ session('error') }}</p>
                             </div>
+                            <button @click="show = false" class="ml-4 text-red-400 hover:text-red-600">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 @endif

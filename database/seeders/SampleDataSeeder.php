@@ -2,15 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
+use App\Models\Rating;
 use App\Models\User;
 use artist;
+use event;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use organiser;
 use venue;
-use event;
-use App\Models\Rating;
-use Illuminate\Support\Facades\Hash;
 
 class SampleDataSeeder extends Seeder
 {
@@ -28,7 +27,7 @@ class SampleDataSeeder extends Seeder
                 'username' => 'superadmin',
             ]
         );
-        if (!$superuser->hasRole('superuser')) {
+        if (! $superuser->hasRole('superuser')) {
             $superuser->addRole('superuser');
         }
 
@@ -40,7 +39,7 @@ class SampleDataSeeder extends Seeder
                 'username' => 'johndoe',
             ]
         );
-        if (!$artistUser->hasRole('artist')) {
+        if (! $artistUser->hasRole('artist')) {
             $artistUser->addRole('artist');
         }
 
@@ -52,7 +51,7 @@ class SampleDataSeeder extends Seeder
                 'username' => 'janesmith',
             ]
         );
-        if (!$organiserUser->hasRole('organiser')) {
+        if (! $organiserUser->hasRole('organiser')) {
             $organiserUser->addRole('organiser');
         }
 
@@ -64,7 +63,7 @@ class SampleDataSeeder extends Seeder
                 'username' => 'bobwilson',
             ]
         );
-        if (!$regularUser->hasRole('user')) {
+        if (! $regularUser->hasRole('user')) {
             $regularUser->addRole('user');
         }
 

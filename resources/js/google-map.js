@@ -1,9 +1,17 @@
 // Google Maps functionality
 function initGoogleMap(mapId, mapConfig) {
+    console.log('initGoogleMap called with:', mapId, mapConfig);
+    
     const mapElement = document.getElementById(`google-map-${mapId}`);
     const loadingElement = document.getElementById(`map-loading-${mapId}`);
     
-    if (!mapElement) return;
+    console.log('Map element found:', mapElement);
+    console.log('Loading element found:', loadingElement);
+    
+    if (!mapElement) {
+        console.error(`Map element not found: google-map-${mapId}`);
+        return;
+    }
 
     // Initialize Google Maps
     function initMap() {
@@ -47,8 +55,6 @@ function initGoogleMap(mapId, mapConfig) {
 
         let userLocation = null;
         let selectedEvent = null;
-        let hoveredEvent = null;
-        let hoverTimeout = null;
 
         // User location marker
         function addUserLocationMarker(position) {
@@ -117,8 +123,8 @@ function initGoogleMap(mapId, mapConfig) {
             }
         }
 
-        // Add event markers
-        mapConfig.events.forEach(event => {
+        // Add event markers and collect for clustering
+        const markers = mapConfig.events.map(event => {
             const marker = new google.maps.Marker({
                 position: { 
                     lat: event.venue.latitude, 
@@ -156,47 +162,79 @@ function initGoogleMap(mapId, mapConfig) {
                 marker.addListener('click', () => {
                     selectedEvent = event;
                     showInfoWindow(marker, event);
-                });
-
-                // Hover events
-                marker.addListener('mouseover', () => {
-                    if (hoverTimeout) {
-                        clearTimeout(hoverTimeout);
-                    }
-                    hoverTimeout = setTimeout(() => {
-                        if (!selectedEvent) {
-                            hoveredEvent = event;
-                            showInfoWindow(marker, event, true);
-                        }
-                    }, 300);
-                });
-
-                marker.addListener('mouseout', () => {
-                    if (hoverTimeout) {
-                        clearTimeout(hoverTimeout);
-                    }
-                    if (hoveredEvent === event) {
-                        hoveredEvent = null;
-                        hideInfoWindow();
-                    }
+                    openSheet(event);
                 });
             }
+            return marker;
         });
 
-        // Info window
-        let infoWindow = new google.maps.InfoWindow();
+        // Marker clustering (if library loaded)
+        try {
+            if (window.markerClusterer?.MarkerClusterer) {
+                new window.markerClusterer.MarkerClusterer({ map, markers });
+            } else if (window.MarkerClusterer) {
+                new window.MarkerClusterer({ map, markers });
+            }
+        } catch (e) {
+            console.warn('Marker clustering not available', e);
+        }
 
-        function showInfoWindow(marker, event, isHover = false) {
-            const content = createInfoWindowContent(event, isHover);
+        // Info window
+        let infoWindow = new google.maps.InfoWindow({ disableAutoPan: true, maxWidth: 320 });
+
+        function showInfoWindow(marker, event) {
+            const content = createInfoWindowContent(event);
             infoWindow.setContent(content);
             infoWindow.open(map, marker);
         }
+
+        // Bottom sheet logic
+        const sheet = document.getElementById(`map-sheet-${mapId}`);
+        const sheetTitle = document.getElementById(`map-sheet-title-${mapId}`);
+        const sheetContent = document.getElementById(`map-sheet-content-${mapId}`);
+        const sheetClose = document.getElementById(`map-sheet-close-${mapId}`);
+
+        function renderSheetContent(event) {
+            const eventDate = new Date(event.date);
+            sheetTitle.textContent = event.name;
+            sheetContent.innerHTML = `
+                <div class="space-y-3 text-sm text-gray-700">
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <span>${event.venue.name}</span>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <span>${eventDate.toLocaleDateString()}</span>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>${event.time || eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div class="pt-2">
+                        <a href="/events/${event.id}" class="inline-flex items-center bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-md">View details</a>
+                    </div>
+                </div>`;
+        }
+
+        function openSheet(event) {
+            if (!sheet) return;
+            renderSheetContent(event);
+            sheet.classList.remove('hidden');
+        }
+
+        function closeSheet() {
+            if (!sheet) return;
+            sheet.classList.add('hidden');
+        }
+
+        if (sheetClose) sheetClose.addEventListener('click', closeSheet);
 
         function hideInfoWindow() {
             infoWindow.close();
         }
 
-        function createInfoWindowContent(event, isHover = false) {
+        function createInfoWindowContent(event) {
             const eventDate = new Date(event.date);
             const formatDate = (date) => {
                 const now = new Date();
@@ -211,30 +249,29 @@ function initGoogleMap(mapId, mapConfig) {
 
             return `
                 <div class="p-4 max-w-xs">
-                    <h3 class="font-bold text-gray-900 mb-3 text-lg">${event.name}</h3>
+                    <h3 class="font-bold text-gray-900 mb-2 text-base leading-tight">${event.name}</h3>
                     <div class="space-y-2 text-sm text-gray-600">
                         <div class="flex items-center">
-                            <svg class="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-4 w-4 text-purple-600 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                             <span class="truncate">${event.venue.name}</span>
                         </div>
                         <div class="flex items-center">
-                            <svg class="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-4 w-4 text-purple-600 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span>${formatDate(eventDate)}</span>
                         </div>
                         <div class="flex items-center">
-                            <svg class="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-4 w-4 text-purple-600 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span>${event.time || eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
-                        <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
-                            <span class="font-semibold text-purple-600 text-lg">R${event.price || 0}</span>
-                            ${!isHover ? `<a href="/events/${event.id}" class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 shadow-md">View Details</a>` : '<span class="text-xs text-gray-500">Click for details</span>'}
+                        <div class="pt-3">
+                            <a href="/events/${event.id}" class="inline-flex items-center bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-md">View details</a>
                         </div>
                     </div>
                 </div>

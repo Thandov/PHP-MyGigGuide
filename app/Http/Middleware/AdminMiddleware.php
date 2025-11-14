@@ -15,15 +15,14 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return redirect()->route('admin.login');
         }
 
-        if (!auth()->user()->hasRole(['admin', 'superuser'])) {
+        if (! auth()->user()->hasRole(['admin', 'superuser'])) {
             abort(403, 'Access denied. Admin privileges required.');
         }
 
         return $next($request);
     }
 }
-
